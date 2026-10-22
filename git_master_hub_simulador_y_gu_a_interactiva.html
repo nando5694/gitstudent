@@ -1,0 +1,2449 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Master Hub - Guía Interactiva y Simulador Sin Miedo</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts: Inter & Fira Code -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        gh: {
+                            bg: '#0d1117',
+                            card: '#161b22',
+                            border: '#30363d',
+                            text: '#c9d1d9',
+                            muted: '#8b949e',
+                            accent: '#58a6ff',
+                            success: '#238636',
+                            warning: '#d29922',
+                            danger: '#f85149',
+                            purple: '#8957e5'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            overflow-x: hidden;
+        }
+        /* Scrollbar personalizada estilo VS Code */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d1117;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #58a6ff;
+        }
+        /* Animaciones de flujo */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(88, 166, 255, 0.25); }
+            50% { box-shadow: 0 0 28px rgba(88, 166, 255, 0.65); }
+        }
+        .glow-active {
+            animation: pulseGlow 2s infinite;
+            border-color: #58a6ff !important;
+        }
+        @keyframes packetFly {
+            0% { transform: scale(0.8); opacity: 0; }
+            20% { transform: scale(1.05); opacity: 1; }
+            80% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0; }
+        }
+        .commit-node {
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .commit-node:hover {
+            filter: drop-shadow(0 0 8px rgba(88, 166, 255, 0.8));
+        }
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background-color: #58a6ff;
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-blue-500 selection:text-white">
+
+    <!-- Notificación Toast Flotante -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Modal de Detalles / Demo -->
+    <div id="command-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-gh-card border border-gh-border rounded-2xl max-w-2xl w-full p-6 shadow-2xl transform transition-all">
+            <div class="flex justify-between items-start border-b border-gh-border pb-4 mb-4">
+                <div>
+                    <span id="modal-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full"></span>
+                    <h3 id="modal-title" class="text-2xl font-bold font-mono text-white mt-2"></h3>
+                </div>
+                <button onclick="closeModal()" class="text-gh-muted hover:text-white p-1.5 rounded-lg hover:bg-gh-border/50 transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="space-y-4 text-sm">
+                <div>
+                    <h4 class="text-gh-accent font-semibold uppercase tracking-wider text-xs mb-1">En Español Claro (Uso en el trabajo)</h4>
+                    <p id="modal-desc" class="text-gray-300 leading-relaxed text-base"></p>
+                </div>
+                <div class="bg-gh-bg border border-gh-border rounded-xl p-4">
+                    <h4 class="text-gray-400 font-semibold text-xs uppercase mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-terminal text-gh-accent"></i> Opciones y Flags más usados en la vida real
+                    </h4>
+                    <div id="modal-flags" class="space-y-2 font-mono text-xs"></div>
+                </div>
+                <div class="bg-blue-950/30 border border-blue-500/30 rounded-xl p-4">
+                    <h4 class="text-blue-400 font-semibold text-xs uppercase mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-lightbulb"></i> Consejo Profesional Sin Miedo
+                    </h4>
+                    <p id="modal-tip" class="text-blue-200 text-xs leading-relaxed"></p>
+                </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-gh-border flex flex-wrap justify-end gap-3">
+                <button onclick="closeModal()" class="px-4 py-2 rounded-lg border border-gh-border text-gray-300 hover:bg-gh-border/40 text-sm font-medium transition">
+                    Cerrar
+                </button>
+                <button id="modal-try-btn" class="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition">
+                    <i class="fa-solid fa-play"></i> Probar este Comando en el Simulador
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header Principal -->
+    <header class="sticky top-0 z-40 bg-gh-bg/90 backdrop-blur-md border-b border-gh-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                    <i class="fa-brands fa-git-alt text-white text-2xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-extrabold text-lg sm:text-xl tracking-tight text-white">Git Master <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Hub</span></h1>
+                        <span class="hidden sm:inline-block text-[10px] font-mono uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">Modo Sin Miedo</span>
+                    </div>
+                    <p class="text-xs text-gh-muted hidden sm:block">Aprende, visualiza y simula todos los comandos de Git antes de usarlos en tu trabajo</p>
+                </div>
+            </div>
+
+            <!-- Navegación por Pestañas / Secciones -->
+            <nav class="flex items-center gap-1 sm:gap-2 bg-gh-card p-1 rounded-xl border border-gh-border">
+                <button onclick="switchSection('visualizer')" id="nav-visualizer" class="nav-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition flex items-center gap-2 bg-blue-600 text-white shadow">
+                    <i class="fa-solid fa-diagram-project"></i> <span class="hidden md:inline">1. Las 4 Áreas</span>
+                </button>
+                <button onclick="switchSection('simulator')" id="nav-simulator" class="nav-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gh-muted hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-code-branch"></i> <span class="hidden md:inline">2. Simulador + Grafo</span>
+                </button>
+                <button onclick="switchSection('catalog')" id="nav-catalog" class="nav-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gh-muted hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-book-open"></i> <span class="hidden md:inline">3. Todos los Comandos</span>
+                </button>
+                <button onclick="switchSection('panic')" id="nav-panic" class="nav-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-red-400 hover:bg-red-500/10 transition flex items-center gap-2">
+                    <i class="fa-solid fa-life-ring animate-pulse"></i> <span class="hidden md:inline">4. Salvavidas SOS</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+
+        <!-- Banner de Bienvenida Rápida -->
+        <div class="bg-gradient-to-r from-blue-950/60 via-gh-card to-purple-950/40 border border-gh-border rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
+                    <i class="fa-solid fa-shield-halved text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="text-white font-bold text-sm sm:text-base">¿Miedo a romper el repositorio de tu empresa? Aquí nada se rompe.</h2>
+                    <p class="text-xs sm:text-sm text-gh-muted mt-0.5">El 95% del miedo a Git viene de no ver qué pasa por dentro. Usa las pestañas superiores para ver cómo viajan tus archivos, practicar ramas en vivo o usar el botón de pánico si tuviste un accidente.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 self-end lg:self-center">
+                <span class="text-xs text-gh-muted">Acceso rápido:</span>
+                <button onclick="switchSection('catalog')" class="text-xs bg-gh-border/60 hover:bg-gh-border text-white px-3 py-1.5 rounded-lg font-mono transition">
+                    <i class="fa-solid fa-magnifying-glass mr-1 text-blue-400"></i> Buscar comando
+                </button>
+                <button onclick="switchSection('panic')" class="text-xs bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 px-3 py-1.5 rounded-lg font-semibold transition">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> ¡Cometí un error!
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- SECCIÓN 1: VISUALIZADOR DEL FLUJO DE LAS 4 ÁREAS DE GIT                   -->
+        <!-- ========================================================================= -->
+        <section id="section-visualizer" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <span class="text-xs font-mono uppercase tracking-wider text-blue-400 font-semibold">Módulo 1 • Entendiendo la Arquitectura</span>
+                    <h2 class="text-2xl font-bold text-white mt-1">Visualizador Interactivo de las 4 Zonas de Git</h2>
+                    <p class="text-sm text-gh-muted">Haz clic en cualquier comando inferior para ver exactamente cómo se mueven tus archivos entre tu carpeta, el limbo (Staging), tu historial local y la nube (GitHub/GitLab).</p>
+                </div>
+                <button onclick="resetFlowVisualizer()" class="self-start md:self-auto px-3.5 py-2 rounded-xl bg-gh-card border border-gh-border hover:border-gray-500 text-xs font-medium text-gray-300 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-rotate-left"></i> Reiniciar Escenario
+                </button>
+            </div>
+
+            <!-- Botonera de Acciones del Flujo -->
+            <div class="bg-gh-card border border-gh-border rounded-2xl p-4">
+                <div class="text-xs font-semibold text-gh-muted uppercase tracking-wider mb-3 flex items-center justify-between">
+                    <span>Haz clic en un comando para animar el viaje del código:</span>
+                    <span id="flow-step-indicator" class="text-blue-400 font-mono">Estado: Listo para interactuar</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+                    <button onclick="triggerFlowAction('edit')" class="flow-btn group p-2.5 rounded-xl bg-gh-bg border border-gh-border hover:border-amber-400/60 text-left transition flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono text-xs font-bold text-amber-400">1. Editar</span>
+                            <i class="fa-solid fa-pen-to-square text-amber-400/70 group-hover:scale-110 transition"></i>
+                        </div>
+                        <span class="text-[11px] text-gh-muted mt-1">Modificar código</span>
+                    </button>
+
+                    <button onclick="triggerFlowAction('add')" class="flow-btn group p-2.5 rounded-xl bg-gh-bg border border-gh-border hover:border-emerald-400/60 text-left transition flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono text-xs font-bold text-emerald-400">git add .</span>
+                            <i class="fa-solid fa-arrow-right text-emerald-400/70 group-hover:translate-x-1 transition"></i>
+                        </div>
+                        <span class="text-[11px] text-gh-muted mt-1">Subir a Tarima</span>
+                    </button>
+
+                    <button onclick="triggerFlowAction('commit')" class="flow-btn group p-2.5 rounded-xl bg-gh-bg border border-gh-border hover:border-blue-400/60 text-left transition flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono text-xs font-bold text-blue-400">git commit</span>
+                            <i class="fa-solid fa-camera text-blue-400/70 group-hover:scale-110 transition"></i>
+                        </div>
+                        <span class="text-[11px] text-gh-muted mt-1">Guardar foto local</span>
+                    </button>
+
+                    <button onclick="triggerFlowAction('push')" class="flow-btn group p-2.5 rounded-xl bg-gh-bg border border-gh-border hover:border-purple-400/60 text-left transition flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono text-xs font-bold text-purple-400">git push</span>
+                            <i class="fa-solid fa-cloud-arrow-up text-purple-400/70 group-hover:-translate-y-0.5 transition"></i>
+                        </div>
+                        <span class="text-[11px] text-gh-muted mt-1">Subir a GitHub</span>
+                    </button>
+
+                    <button onclick="triggerFlowAction('fetch')" class="flow-btn group p-2.5 rounded-xl bg-gh-bg border border-gh-border hover:border-cyan-400/60 text-left transition flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono text-xs font-bold text-cyan-400">git fetch</span>
+                            <i class="fa-solid fa-satellite-dish text-cyan-400/70 group-hover:rotate-12 transition"></i>
+                        </div>
+                        <span class="text-[11px] text-gh-muted mt-1">Ver novedades</span>
+                    </button>
+
+                    <button onclick="triggerFlowAction('pull')" class="flow-btn group p-2.5 rounded-xl bg-gh-bg border border-gh-border hover:border-teal-400/60 text-left transition flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono text-xs font-bold text-teal-400">git pull</span>
+                            <i class="fa-solid fa-cloud-arrow-down text-teal-400/70 group-hover:translate-y-0.5 transition"></i>
+                        </div>
+                        <span class="text-[11px] text-gh-muted mt-1">Traer a mi PC</span>
+                    </button>
+
+                    <button onclick="triggerFlowAction('restore')" class="flow-btn group p-2.5 rounded-xl bg-gh-bg border border-gh-border hover:border-orange-400/60 text-left transition flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono text-xs font-bold text-orange-400">git restore</span>
+                            <i class="fa-solid fa-eraser text-orange-400/70 transition"></i>
+                        </div>
+                        <span class="text-[11px] text-gh-muted mt-1">Descartar cambio</span>
+                    </button>
+
+                    <button onclick="triggerFlowAction('reset')" class="flow-btn group p-2.5 rounded-xl bg-gh-bg border border-gh-border hover:border-red-400/60 text-left transition flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono text-xs font-bold text-red-400">git reset</span>
+                            <i class="fa-solid fa-backward-step text-red-400/70 transition"></i>
+                        </div>
+                        <span class="text-[11px] text-gh-muted mt-1">Devolver commit</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Diagrama de las 4 Columnas Interactivas -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative">
+                
+                <!-- Zona 1: Working Directory -->
+                <div id="zone-working" class="zone-card bg-gh-card border-2 border-gh-border rounded-2xl p-4 flex flex-col justify-between min-h-[290px] transition-all duration-300">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-gh-border pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                                    <i class="fa-solid fa-laptop-code"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-white text-sm">1. Working Directory</h3>
+                                    <p class="text-[11px] text-gh-muted">Tu Carpeta de Trabajo (VS Code)</p>
+                                </div>
+                            </div>
+                            <span class="text-[10px] font-mono bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded">Tu PC</span>
+                        </div>
+                        <p class="text-xs text-gh-muted mt-3">Aquí editas tus archivos libremente. Git nota que los tocaste, pero <strong>aún no están listos</strong> para guardarse.</p>
+                        
+                        <!-- Contenedor de Archivos en Working Dir -->
+                        <div id="files-working" class="mt-4 space-y-2"></div>
+                    </div>
+                    <div class="mt-4 pt-2 border-t border-gh-border/60 flex justify-between items-center text-[11px] text-gh-muted">
+                        <span>Analogía: <strong>Tu escritorio</strong></span>
+                        <span class="font-mono text-amber-400">Untracked / Modified</span>
+                    </div>
+                </div>
+
+                <!-- Zona 2: Staging Area / Index -->
+                <div id="zone-staging" class="zone-card bg-gh-card border-2 border-gh-border rounded-2xl p-4 flex flex-col justify-between min-h-[290px] transition-all duration-300">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-gh-border pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                                    <i class="fa-solid fa-box-open"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-white text-sm">2. Staging Area (Index)</h3>
+                                    <p class="text-[11px] text-gh-muted">Área de Preparación / Tarima</p>
+                                </div>
+                            </div>
+                            <span class="text-[10px] font-mono bg-emerald-500/10 text-emerald-300 px-2 py-0.5 rounded">Pre-Commit</span>
+                        </div>
+                        <p class="text-xs text-gh-muted mt-3">Los archivos que elegiste con <code class="text-emerald-400">git add</code> para salir en la próxima foto (commit). Puedes quitar archivos si te arrepientes.</p>
+                        
+                        <!-- Contenedor de Archivos en Staging -->
+                        <div id="files-staging" class="mt-4 space-y-2"></div>
+                    </div>
+                    <div class="mt-4 pt-2 border-t border-gh-border/60 flex justify-between items-center text-[11px] text-gh-muted">
+                        <span>Analogía: <strong>La pose para la foto</strong></span>
+                        <span class="font-mono text-emerald-400">Staged</span>
+                    </div>
+                </div>
+
+                <!-- Zona 3: Local Repository -->
+                <div id="zone-local" class="zone-card bg-gh-card border-2 border-gh-border rounded-2xl p-4 flex flex-col justify-between min-h-[290px] transition-all duration-300">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-gh-border pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                                    <i class="fa-solid fa-database"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-white text-sm">3. Repositorio Local</h3>
+                                    <p class="text-[11px] text-gh-muted">Carpeta oculta <code class="text-blue-400">.git</code> en tu PC</p>
+                                </div>
+                            </div>
+                            <span class="text-[10px] font-mono bg-blue-500/10 text-blue-300 px-2 py-0.5 rounded">Historial PC</span>
+                        </div>
+                        <p class="text-xs text-gh-muted mt-3">Aquí viven todos tus <strong>commits</strong> seguros en tu disco duro. Tus compañeros aún no los ven hasta que hagas push.</p>
+                        
+                        <!-- Contenedor de Commits en Local -->
+                        <div id="files-local" class="mt-4 space-y-2"></div>
+                    </div>
+                    <div class="mt-4 pt-2 border-t border-gh-border/60 flex justify-between items-center text-[11px] text-gh-muted">
+                        <span>Analogía: <strong>Álbum en tu casa</strong></span>
+                        <span class="font-mono text-blue-400">Committed (HEAD)</span>
+                    </div>
+                </div>
+
+                <!-- Zona 4: Remote Repository -->
+                <div id="zone-remote" class="zone-card bg-gh-card border-2 border-gh-border rounded-2xl p-4 flex flex-col justify-between min-h-[290px] transition-all duration-300">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-gh-border pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                                    <i class="fa-brands fa-github"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-white text-sm">4. Repositorio Remoto</h3>
+                                    <p class="text-[11px] text-gh-muted">GitHub / GitLab / Bitbucket</p>
+                                </div>
+                            </div>
+                            <span class="text-[10px] font-mono bg-purple-500/10 text-purple-300 px-2 py-0.5 rounded">origin/main</span>
+                        </div>
+                        <p class="text-xs text-gh-muted mt-3">El servidor en la nube donde todo el equipo comparte su código. Lo que sube aquí con <code class="text-purple-400">git push</code> es visible para todos.</p>
+                        
+                        <!-- Contenedor de Commits en Remote -->
+                        <div id="files-remote" class="mt-4 space-y-2"></div>
+                    </div>
+                    <div class="mt-4 pt-2 border-t border-gh-border/60 flex justify-between items-center text-[11px] text-gh-muted">
+                        <span>Analogía: <strong>Instagram del Equipo</strong></span>
+                        <span class="font-mono text-purple-400">origin</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Panel de Explicación en Vivo del Flujo -->
+            <div id="flow-explanation-box" class="bg-gradient-to-r from-blue-950/40 to-gh-card border border-blue-500/40 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span id="flow-cmd-tag" class="font-mono text-xs font-bold px-2.5 py-1 rounded bg-blue-500/20 text-blue-300 border border-blue-400/30">Estado Inicial</span>
+                        <h4 id="flow-exp-title" class="font-bold text-white text-base">Todo limpio y sincronizado</h4>
+                    </div>
+                    <p id="flow-exp-desc" class="text-sm text-gray-300 leading-relaxed">
+                        Tu archivo <code class="text-amber-300">app.js</code> está en su versión v1.0 tanto en tu PC como en GitHub. Haz clic en <strong>"1. Editar"</strong> arriba o prueba <code class="text-emerald-400">git add .</code> para ver cómo reacciona Git paso a paso.
+                    </p>
+                </div>
+                <button onclick="switchSection('simulator')" class="shrink-0 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-2 transition shadow-lg shadow-blue-600/20">
+                    Ir al Simulador de Ramas <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- ========================================================================= -->
+        <!-- SECCIÓN 2: SIMULADOR DE TERMINAL Y GRAFO DE RAMAS EN VIVO                 -->
+        <!-- ========================================================================= -->
+        <section id="section-simulator" class="space-y-6 hidden">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <span class="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">Módulo 2 • Sandbox de Práctica Real</span>
+                    <h2 class="text-2xl font-bold text-white mt-1">Simulador de Terminal + Grafo de Ramas en Vivo</h2>
+                    <p class="text-sm text-gh-muted">Escribe comandos reales en la consola o usa los botones rápidos. Observa cómo cambian los nodos, las ramas y el puntero <code class="text-amber-400">HEAD</code> al instante.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="loadPresetScenario('feature')" class="px-3 py-1.5 rounded-lg bg-gh-card border border-gh-border hover:border-blue-400 text-xs text-gray-300 transition">
+                        <i class="fa-solid fa-wand-magic-sparkles text-blue-400 mr-1"></i> Demo: Crear Rama y Merge
+                    </button>
+                    <button onclick="resetSandbox()" class="px-3 py-1.5 rounded-lg bg-gh-card border border-gh-border hover:border-red-400 text-xs text-gray-300 transition">
+                        <i class="fa-solid fa-trash-can text-red-400 mr-1"></i> Reiniciar Sandbox
+                    </button>
+                </div>
+            </div>
+
+            <!-- Botones Rápidos para Ejecutar sin escribir -->
+            <div class="bg-gh-card border border-gh-border rounded-2xl p-3.5">
+                <div class="text-[11px] font-semibold text-gh-muted uppercase tracking-wider mb-2.5 flex items-center justify-between">
+                    <span><i class="fa-solid fa-bolt text-amber-400 mr-1"></i> Clic rápido para ejecutar en el simulador:</span>
+                    <span id="sim-status-bar" class="font-mono text-xs text-emerald-400">Rama actual: main | Working tree clean</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="runSimCommand('touch login.js')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-amber-300 transition">
+                        + Crear/Editar Archivo
+                    </button>
+                    <button onclick="runSimCommand('git status')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-gray-200 transition">
+                        git status
+                    </button>
+                    <button onclick="runSimCommand('git add .')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-emerald-400 transition">
+                        git add .
+                    </button>
+                    <button onclick="runSimCommand('git commit -m &quot;feat: avance&quot;')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-blue-400 transition">
+                        git commit -m "..."
+                    </button>
+                    <button onclick="runSimCommand('git switch -c feature/login')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-purple-400 transition">
+                        git switch -c feature/login
+                    </button>
+                    <button onclick="runSimCommand('git switch main')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-purple-300 transition">
+                        git switch main
+                    </button>
+                    <button onclick="runSimCommand('git merge feature/login')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-teal-400 transition">
+                        git merge feature/login
+                    </button>
+                    <button onclick="runSimCommand('git stash')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-amber-400 transition">
+                        git stash
+                    </button>
+                    <button onclick="runSimCommand('git stash pop')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-amber-300 transition">
+                        git stash pop
+                    </button>
+                    <button onclick="runSimCommand('git reset --soft HEAD~1')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-orange-400 transition">
+                        git reset --soft HEAD~1
+                    </button>
+                    <button onclick="runSimCommand('git reset --hard HEAD~1')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-red-400 transition">
+                        git reset --hard HEAD~1
+                    </button>
+                    <button onclick="runSimCommand('git revert HEAD')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-pink-400 transition">
+                        git revert HEAD
+                    </button>
+                    <button onclick="runSimCommand('git reflog')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-cyan-400 transition">
+                        git reflog
+                    </button>
+                    <button onclick="runSimCommand('git push')" class="px-2.5 py-1.5 rounded-lg bg-gh-bg hover:bg-gray-800 border border-gh-border font-mono text-xs text-indigo-400 transition">
+                        git push
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid Principal: Consola Izquierda + Grafo Derecha -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Terminal Interactiva (5 columnas) -->
+                <div class="lg:col-span-5 bg-[#090d13] border border-gh-border rounded-2xl flex flex-col h-[480px] shadow-2xl overflow-hidden">
+                    <!-- Barra de título estilo Mac/VS Code -->
+                    <div class="bg-gh-card px-4 py-2.5 border-b border-gh-border flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500/80"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500/80"></span>
+                            <span class="ml-2 font-mono text-xs text-gh-muted">bash — ~/proyecto-trabajo</span>
+                        </div>
+                        <button onclick="clearTerminalOutput()" class="text-[11px] text-gh-muted hover:text-white font-mono">
+                            clear
+                        </button>
+                    </div>
+
+                    <!-- Salida de la Terminal -->
+                    <div id="terminal-output" class="flex-grow p-4 font-mono text-xs space-y-2.5 overflow-y-auto leading-relaxed"></div>
+
+                    <!-- Input de Comandos -->
+                    <form onsubmit="handleTerminalSubmit(event)" class="bg-gh-card/70 border-t border-gh-border p-3 flex items-center gap-2">
+                        <span id="terminal-prompt" class="font-mono text-xs text-emerald-400 shrink-0">dev@empresa <span class="text-purple-400">(main)</span> $</span>
+                        <input 
+                            type="text" 
+                            id="terminal-input" 
+                            placeholder="Escribe ej: git status, git commit -m 'hola'..." 
+                            autocomplete="off"
+                            class="w-full bg-transparent font-mono text-xs text-white focus:outline-none"
+                        >
+                        <button type="submit" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs rounded-lg transition shrink-0">
+                            Ejecutar
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Visualizador del Grafo de Commits y Estado (7 columnas) -->
+                <div class="lg:col-span-7 bg-gh-card border border-gh-border rounded-2xl flex flex-col h-[480px] overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gh-border flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-code-Fork text-blue-400"></i>
+                            <h3 class="font-bold text-white text-sm">Grafo de Commits y Ramas en Tiempo Real</h3>
+                        </div>
+                        <!-- Leyenda de Ramas -->
+                        <div class="flex items-center gap-3 text-xs font-mono">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> main</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> otra rama</span>
+                            <span class="flex items-center gap-1.5"><span class="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[10px]">HEAD</span> Tu ubicación</span>
+                        </div>
+                    </div>
+
+                    <!-- Lienzo SVG del Grafo -->
+                    <div id="graph-container" class="flex-grow bg-[#0b0f15] relative overflow-x-auto overflow-y-hidden flex items-center p-4">
+                        <svg id="git-graph-svg" class="w-full h-full min-w-[620px]" viewBox="0 0 750 280"></svg>
+                    </div>
+
+                    <!-- Barra Inferior de Estado del Sandbox (Archivos modificados, Staged, Stash) -->
+                    <div class="bg-gh-bg border-t border-gh-border p-3 grid grid-cols-3 gap-3 text-xs">
+                        <div class="bg-gh-card border border-gh-border rounded-xl p-2.5">
+                            <div class="text-[10px] font-mono uppercase text-amber-400 font-semibold flex justify-between">
+                                <span>Working Dir (Modificados)</span>
+                                <span id="sim-count-working">0</span>
+                            </div>
+                            <div id="sim-list-working" class="font-mono text-[11px] text-gray-300 mt-1 truncate">Sin cambios pendientes</div>
+                        </div>
+                        <div class="bg-gh-card border border-gh-border rounded-xl p-2.5">
+                            <div class="text-[10px] font-mono uppercase text-emerald-400 font-semibold flex justify-between">
+                                <span>Staging Area (git add)</span>
+                                <span id="sim-count-staged">0</span>
+                            </div>
+                            <div id="sim-list-staged" class="font-mono text-[11px] text-gray-300 mt-1 truncate">Vacío</div>
+                        </div>
+                        <div class="bg-gh-card border border-gh-border rounded-xl p-2.5">
+                            <div class="text-[10px] font-mono uppercase text-purple-400 font-semibold flex justify-between">
+                                <span>Cajón Temporal (Stash)</span>
+                                <span id="sim-count-stash">0</span>
+                            </div>
+                            <div id="sim-list-stash" class="font-mono text-[11px] text-gray-300 mt-1 truncate">0 guardados</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ========================================================================= -->
+        <!-- SECCIÓN 3: CATÁLOGO COMPLETO DE TODOS LOS COMANDOS DE GIT                 -->
+        <!-- ========================================================================= -->
+        <section id="section-catalog" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gh-border pb-4">
+                <div>
+                    <span class="text-xs font-mono uppercase tracking-wider text-purple-400 font-semibold">Módulo 3 • Enciclopedia Práctica para el Trabajo</span>
+                    <h2 class="text-2xl font-bold text-white mt-1">Catálogo Completo de Comandos de Git</h2>
+                    <p class="text-sm text-gh-muted">Cada comando incluye su <strong>Semáforo de Seguridad Laboral</strong>, explicación sin tecnicismos y botón para probarlo sin miedo.</p>
+                </div>
+
+                <!-- Leyenda del Semáforo -->
+                <div class="flex flex-wrap items-center gap-2 text-xs bg-gh-card px-3.5 py-2 rounded-xl border border-gh-border">
+                    <span class="text-gh-muted font-medium mr-1">Semáforo de Riesgo:</span>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">🟢 Seguro</span>
+                    <span class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">🟡 Precaución</span>
+                    <span class="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/30">🔴 Reescribe Historial</span>
+                </div>
+            </div>
+
+            <!-- Barra de Búsqueda y Filtros de Categoría -->
+            <div class="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-gh-card p-3.5 rounded-2xl border border-gh-border">
+                <!-- Buscador en tiempo real -->
+                <div class="relative flex-grow max-w-md">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gh-muted text-sm"></i>
+                    <input 
+                        type="text" 
+                        id="cmd-search" 
+                        oninput="filterCatalog()" 
+                        placeholder="Buscar comando o acción (ej: borrar rama, revertir, stash, log)..." 
+                        class="w-full pl-10 pr-4 py-2 bg-gh-bg border border-gh-border focus:border-blue-500 rounded-xl text-sm text-white placeholder-gh-muted focus:outline-none transition"
+                    >
+                </div>
+
+                <!-- Botones de Categoría -->
+                <div class="flex flex-wrap gap-1.5" id="category-filters">
+                    <button onclick="setCategoryFilter('all')" data-cat="all" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition">
+                        Todos (<span id="count-all">32</span>)
+                    </button>
+                    <button onclick="setCategoryFilter('config')" data-cat="config" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gh-bg text-gh-muted hover:text-white border border-gh-border transition">
+                        ⚙️ Configuración
+                    </button>
+                    <button onclick="setCategoryFilter('init')" data-cat="init" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gh-bg text-gh-muted hover:text-white border border-gh-border transition">
+                        🚀 Inicio
+                    </button>
+                    <button onclick="setCategoryFilter('daily')" data-cat="daily" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gh-bg text-gh-muted hover:text-white border border-gh-border transition">
+                        💻 Día a Día
+                    </button>
+                    <button onclick="setCategoryFilter('branch')" data-cat="branch" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gh-bg text-gh-muted hover:text-white border border-gh-border transition">
+                        🌿 Ramas y Fusión
+                    </button>
+                    <button onclick="setCategoryFilter('remote')" data-cat="remote" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gh-bg text-gh-muted hover:text-white border border-gh-border transition">
+                        ☁️ Remoto
+                    </button>
+                    <button onclick="setCategoryFilter('history')" data-cat="history" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gh-bg text-gh-muted hover:text-white border border-gh-border transition">
+                        🔍 Historial
+                    </button>
+                    <button onclick="setCategoryFilter('undo')" data-cat="undo" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gh-bg text-gh-muted hover:text-white border border-gh-border transition">
+                        🧯 Deshacer / SOS
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid de Tarjetas de Comandos -->
+            <div id="commands-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </section>
+
+        <!-- ========================================================================= -->
+        <!-- SECCIÓN 4: BOTÓN DE PÁNICO / SALVAVIDAS PARA EL TRABAJO                   -->
+        <!-- ========================================================================= -->
+        <section id="section-panic" class="space-y-6 hidden">
+            <div class="bg-gradient-to-r from-red-950/60 via-gh-card to-orange-950/40 border border-red-500/40 rounded-2xl p-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
+                            <i class="fa-solid fa-kit-medical text-2xl"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs font-mono uppercase tracking-wider text-red-400 font-bold">Módulo 4 • Botiquín de Emergencias Laborales</span>
+                            <h2 class="text-2xl font-bold text-white mt-0.5">¿Qué hacer si...? Guía Paso a Paso Sin Pánico</h2>
+                            <p class="text-sm text-gray-300 mt-1">Respira profundo. En Git casi <strong>nada se borra de verdad</strong> durante al menos 30 días gracias a <code class="text-amber-300">git reflog</code>. Selecciona tu emergencia abajo y copia la solución exacta.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acordeón / Tarjetas de Escenarios de Emergencia -->
+            <div id="panic-scenarios-container" class="grid grid-cols-1 lg:grid-cols-2 gap-5"></div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gh-border bg-gh-card/50 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gh-muted">
+            <div class="flex items-center gap-2">
+                <i class="fa-brands fa-git-alt text-orange-500 text-base"></i>
+                <span><strong>Git Master Hub</strong> — Diseñado para aprender Git sin miedo en el trabajo.</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="switchSection('visualizer')" class="hover:text-white transition">4 Áreas</button>
+                <button onclick="switchSection('simulator')" class="hover:text-white transition">Simulador</button>
+                <button onclick="switchSection('catalog')" class="hover:text-white transition">32 Comandos</button>
+                <button onclick="switchSection('panic')" class="text-red-400 hover:text-red-300 transition">Salvavidas SOS</button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ========================================================================= -->
+    <!-- LÓGICA JAVASCRIPT COMPLETA                                                -->
+    <!-- ========================================================================= -->
+    <script>
+        /* =====================================================================
+           1. BASE DE DATOS COMPLETA DE TODOS LOS COMANDOS DE GIT (32 COMANDOS)
+           ===================================================================== */
+        const GIT_COMMANDS = [
+            // --- CONFIGURACIÓN ---
+            {
+                id: 'config',
+                cmd: 'git config',
+                syntax: 'git config --global user.name "Tu Nombre"',
+                category: 'config',
+                catName: 'Configuración',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Firma tus commits con tu nombre y correo corporativo para que tu equipo sepa quién hizo cada cambio.',
+                workUse: 'Es el primer comando que ejecutas cuando te dan tu computadora nueva en el trabajo. Define tu identidad en todos los proyectos.',
+                flags: [
+                    { flag: '--global user.name "Ana"', desc: 'Define tu nombre para todos los repositorios de tu PC.' },
+                    { flag: '--global user.email "ana@empresa.com"', desc: 'Define tu correo oficial del trabajo.' },
+                    { flag: '--list', desc: 'Muestra toda tu configuración actual para verificar que esté bien.' }
+                ],
+                tip: 'Usa el mismo correo que tienes en GitHub o GitLab de tu empresa para que tus commits aparezcan con tu foto de perfil.',
+                simCmd: 'git config --list'
+            },
+            {
+                id: 'help',
+                cmd: 'git help',
+                syntax: 'git help <comando>',
+                category: 'config',
+                catName: 'Configuración',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Abre el manual oficial integrado de cualquier comando cuando olvidas para qué sirve una opción.',
+                workUse: 'Si estás sin internet o quieres verificar rápidamente qué hace un flag específico directamente en tu terminal.',
+                flags: [
+                    { flag: 'git help commit', desc: 'Muestra toda la documentación oficial sobre cómo hacer commits.' },
+                    { flag: 'git <comando> -h', desc: 'Resumen corto de ayuda directamente en la consola sin salir de ella.' }
+                ],
+                tip: 'En lugar de memorizar decenas de opciones, usa `git <comando> -h` para ver un recordatorio rápido en 2 segundos.',
+                simCmd: 'git help'
+            },
+
+            // --- INICIALIZACIÓN ---
+            {
+                id: 'init',
+                cmd: 'git init',
+                syntax: 'git init',
+                category: 'init',
+                catName: 'Inicialización',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Convierte una carpeta normal de tu computadora en un repositorio de Git creando la carpeta oculta .git.',
+                workUse: 'Lo usas cuando creas un proyecto desde cero en tu PC antes de subirlo por primera vez a GitHub/GitLab.',
+                flags: [
+                    { flag: 'git init', desc: 'Inicializa Git en la carpeta actual.' },
+                    { flag: 'git init -b main', desc: 'Inicializa el repositorio asegurando que la rama principal se llame "main".' }
+                ],
+                tip: 'No ejecutes `git init` dentro de otra carpeta que ya tenía Git (evita repositorios anidados).',
+                simCmd: 'git init'
+            },
+            {
+                id: 'clone',
+                cmd: 'git clone',
+                syntax: 'git clone <url-del-repositorio>',
+                category: 'init',
+                catName: 'Inicialización',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Descarga una copia completa de un proyecto desde la nube (GitHub/GitLab) a tu computadora.',
+                workUse: 'En tu primer día de trabajo, clonarás los repositorios de tu empresa para tener todo el código y su historial en tu máquina.',
+                flags: [
+                    { flag: 'git clone https://github.com/emp/app.git', desc: 'Descarga el proyecto en una carpeta llamada "app".' },
+                    { flag: 'git clone <url> mi-carpeta', desc: 'Descarga el proyecto dentro de una carpeta con el nombre que elijas.' },
+                    { flag: '-b develop <url>', desc: 'Clona el repositorio ubicándote directamente en la rama develop.' }
+                ],
+                tip: 'Cuando haces `git clone`, NO necesitas hacer `git init` ni `git remote add`; el clon ya viene 100% configurado.',
+                simCmd: 'git status'
+            },
+
+            // --- DÍA A DÍA / CAMBIOS ---
+            {
+                id: 'status',
+                cmd: 'git status',
+                syntax: 'git status',
+                category: 'daily',
+                catName: 'Día a Día',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Tu brújula. Te dice en qué rama estás, qué archivos modificaste y qué está listo para commit.',
+                workUse: 'Es el comando que más usarás en tu vida profesional. Ejecútalo antes y después de cualquier acción para estar 100% seguro.',
+                flags: [
+                    { flag: 'git status', desc: 'Muestra el reporte completo con consejos de qué comando usar si quieres deshacer algo.' },
+                    { flag: '-s (o --short)', desc: 'Muestra un resumen súper compacto de una línea por archivo.' }
+                ],
+                tip: 'Ejecutar `git status` jamás modifica ni rompe nada. Si tienes dudas, haz `git status` primero.',
+                simCmd: 'git status'
+            },
+            {
+                id: 'add',
+                cmd: 'git add',
+                syntax: 'git add <archivo>  |  git add .',
+                category: 'daily',
+                catName: 'Día a Día',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Pasa tus archivos modificados al Área de Preparación (Staging Area) para incluirlos en el próximo commit.',
+                workUse: 'Terminaste de programar una función, revisas qué archivos tocaste y los subes a la tarima con `git add` antes de guardarlos.',
+                flags: [
+                    { flag: 'git add index.html', desc: 'Prepara únicamente el archivo index.html.' },
+                    { flag: 'git add .', desc: 'Prepara TODOS los archivos nuevos y modificados en la carpeta actual.' },
+                    { flag: 'git add -p', desc: 'Modo interactivo: te permite elegir fragmentos específicos dentro de un mismo archivo.' }
+                ],
+                tip: 'Antes de hacer `git add .`, haz siempre `git status` para no subir por accidente archivos de prueba o contraseñas.',
+                simCmd: 'git add .'
+            },
+            {
+                id: 'commit',
+                cmd: 'git commit',
+                syntax: 'git commit -m "mensaje claro"',
+                category: 'daily',
+                catName: 'Día a Día',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Toma una fotografía instantánea e inmutable de los archivos que están en Staging y la guarda en tu historial local.',
+                workUse: 'Cada vez que completas una pequeña tarea que funciona, haces un commit con un mensaje explicativo como punto de control.',
+                flags: [
+                    { flag: '-m "feat: agregar login"', desc: 'Guarda el commit directamente con ese mensaje descriptivo.' },
+                    { flag: '-am "fix: corregir botón"', desc: 'Hace `git add` de archivos ya conocidos y `git commit` en un solo paso.' },
+                    { flag: '--amend -m "nuevo texto"', desc: 'Corrige el mensaje o agrega archivos olvidados al último commit sin crear otro.' }
+                ],
+                tip: 'Prefiere hacer varios commits pequeños durante el día en lugar de un mega-commit gigante al final de la semana.',
+                simCmd: 'git commit -m "feat: nuevo modulo listo"'
+            },
+            {
+                id: 'diff',
+                cmd: 'git diff',
+                syntax: 'git diff',
+                category: 'daily',
+                catName: 'Día a Día',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Muestra línea por línea (en verde lo agregado y en rojo lo borrado) qué código cambiaste exactamente.',
+                workUse: 'Úsalo antes de hacer `git add` o `git commit` para verificar que no dejaste `console.log()` o código basura.',
+                flags: [
+                    { flag: 'git diff', desc: 'Compara tus cambios actuales en el escritorio contra lo último preparado.' },
+                    { flag: 'git diff --staged', desc: 'Muestra exactamente qué líneas se van a guardar en tu próximo commit.' },
+                    { flag: 'git diff main..mi-rama', desc: 'Compara todas las diferencias entre dos ramas completas.' }
+                ],
+                tip: 'Si ya hiciste `git add .`, `git diff` saldrá vacío. Usa `git diff --staged` para ver lo que ya subiste a la tarima.',
+                simCmd: 'git diff'
+            },
+            {
+                id: 'restore',
+                cmd: 'git restore',
+                syntax: 'git restore <archivo>',
+                category: 'daily',
+                catName: 'Día a Día',
+                safety: 'caution',
+                safetyLabel: '🟡 Precaución',
+                shortDesc: 'Descarta los cambios que hiciste en un archivo o lo baja del área de Staging de forma limpia.',
+                workUse: 'Si tocaste un archivo para hacer pruebas, todo dejó de funcionar y quieres dejarlo intacto como estaba en el último commit.',
+                flags: [
+                    { flag: 'git restore --staged app.js', desc: '🟢 Seguro: Saca el archivo de Staging (deshace `git add`), pero NO borra tu código.' },
+                    { flag: 'git restore app.js', desc: '🟡 Cuidado: Borra las modificaciones no guardadas en app.js y lo regresa al último commit.' }
+                ],
+                tip: 'Recuerda: `git restore --staged` es 100% seguro y solo baja el archivo de la tarima.',
+                simCmd: 'git restore --staged .'
+            },
+            {
+                id: 'rm',
+                cmd: 'git rm',
+                syntax: 'git rm <archivo>',
+                category: 'daily',
+                catName: 'Día a Día',
+                safety: 'caution',
+                safetyLabel: '🟡 Precaución',
+                shortDesc: 'Elimina un archivo del proyecto o deja de rastrearlo en Git sin borrarlo de tu computadora.',
+                workUse: 'El uso estrella en el trabajo es `git rm --cached` cuando subiste por error un archivo `.env` o carpeta `node_modules` que no debía ir a Git.',
+                flags: [
+                    { flag: 'git rm --cached .env', desc: '🟢 Muy útil: Quita el archivo de Git pero lo conserva intacto en tu disco duro.' },
+                    { flag: 'git rm archivo.txt', desc: 'Borra el archivo de tu disco y prepara la eliminación para el próximo commit.' }
+                ],
+                tip: 'Si subiste un archivo de contraseñas `.env` por error, usa `git rm --cached .env` y agrégalo a tu `.gitignore`.',
+                simCmd: 'git status'
+            },
+            {
+                id: 'mv',
+                cmd: 'git mv',
+                syntax: 'git mv <nombre-viejo> <nombre-nuevo>',
+                category: 'daily',
+                catName: 'Día a Día',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Cambia el nombre de un archivo o lo mueve de carpeta avisándole inmediatamente a Git del cambio.',
+                workUse: 'Cuando quieres renombrar un componente sin que Git piense que borraste uno y creaste otro distinto.',
+                flags: [
+                    { flag: 'git mv util.js helpers.js', desc: 'Renombra el archivo y deja el cambio listo en Staging automáticamente.' }
+                ],
+                tip: 'Es el equivalente rápido de renombrar el archivo a mano y hacer `git add` del nuevo y del viejo.',
+                simCmd: 'git status'
+            },
+
+            // --- RAMAS Y FUSIÓN ---
+            {
+                id: 'branch',
+                cmd: 'git branch',
+                syntax: 'git branch [nombre-rama]',
+                category: 'branch',
+                catName: 'Ramas y Fusión',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Lista tus ramas existentes, crea ramas nuevas, les cambia el nombre o elimina ramas que ya fusionaste.',
+                workUse: 'En el trabajo nunca programas directo en `main`. Creas una rama propia para cada ticket o tarea asignada.',
+                flags: [
+                    { flag: 'git branch', desc: 'Lista todas tus ramas locales y marca con un asterisco (*) en cuál estás.' },
+                    { flag: 'git branch -a', desc: 'Muestra tanto tus ramas locales como todas las ramas remotas del equipo.' },
+                    { flag: 'git branch -m nuevo-nombre', desc: 'Le cambia el nombre a la rama en la que estás parado.' },
+                    { flag: 'git branch -d feature/login', desc: 'Borra la rama de forma segura (te avisa si tenía cambios sin fusionar).' }
+                ],
+                tip: 'Usa siempre `-d` minúscula al borrar ramas. Te protege impidiendo que borres trabajo no fusionado.',
+                simCmd: 'git branch'
+            },
+            {
+                id: 'switch',
+                cmd: 'git switch',
+                syntax: 'git switch <nombre-rama>',
+                category: 'branch',
+                catName: 'Ramas y Fusión',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'El comando moderno y claro para moverte de una rama a otra o crear una rama nueva y saltar a ella.',
+                workUse: 'Lo usas todo el día para cambiar entre `main`, `develop` y la rama de tu tarea (`feature/pagos`).',
+                flags: [
+                    { flag: 'git switch main', desc: 'Te mueve a la rama main.' },
+                    { flag: 'git switch -c feature/carrito', desc: 'Crea la rama `feature/carrito` y te cambia a ella en un solo paso.' },
+                    { flag: 'git switch -', desc: 'Atajo genial: te regresa a la rama anterior en la que estabas hace un momento.' }
+                ],
+                tip: '`git switch` fue creado para reemplazar a `git checkout` en el manejo de ramas porque es más claro y seguro.',
+                simCmd: 'git switch -c feature/nueva-tarea'
+            },
+            {
+                id: 'checkout',
+                cmd: 'git checkout',
+                syntax: 'git checkout <rama-o-commit>',
+                category: 'branch',
+                catName: 'Ramas y Fusión',
+                safety: 'caution',
+                safetyLabel: '🟡 Precaución',
+                shortDesc: 'El comando clásico multiusos para cambiar de rama, crear ramas con -b o viajar en el tiempo a un commit antiguo.',
+                workUse: 'Lo verás en todos los tutoriales y scripts del trabajo. Hoy se prefiere `git switch` para ramas y `git restore` para archivos.',
+                flags: [
+                    { flag: 'git checkout main', desc: 'Te mueve a la rama main.' },
+                    { flag: 'git checkout -b fix/error-500', desc: 'Crea la rama y te mueve a ella inmediatamente.' },
+                    { flag: 'git checkout <hash-commit>', desc: 'Viaja en el tiempo para inspeccionar cómo estaba el proyecto en ese commit.' }
+                ],
+                tip: 'Si viajas a un commit antiguo y ves el aviso "Detached HEAD", no te asustes: solo escribe `git switch main` para volver al presente.',
+                simCmd: 'git checkout main'
+            },
+            {
+                id: 'merge',
+                cmd: 'git merge',
+                syntax: 'git merge <rama-que-quieres-traer>',
+                category: 'branch',
+                catName: 'Ramas y Fusión',
+                safety: 'caution',
+                safetyLabel: '🟡 Precaución',
+                shortDesc: 'Une los commits de otra rama dentro de la rama en la que estás parado actualmente.',
+                workUse: 'Cuando terminaste tu tarea en `feature/login`, vas a `main` (o `develop`) y haces `git merge feature/login` para integrar tu trabajo.',
+                flags: [
+                    { flag: 'git merge feature/login', desc: 'Fusiona los cambios de `feature/login` dentro de tu rama actual.' },
+                    { flag: 'git merge --abort', desc: '🛟 Salvavidas: Si ocurre un conflicto al hacer merge y entras en pánico, esto cancela todo y regresa al estado anterior.' }
+                ],
+                tip: 'Recuerda la regla de oro: Primero te paras en la rama que RECIBE (`git switch main`) y luego llamas a la otra (`git merge mi-rama`).',
+                simCmd: 'git merge feature/nueva-tarea'
+            },
+            {
+                id: 'rebase',
+                cmd: 'git rebase',
+                syntax: 'git rebase <rama-base>',
+                category: 'branch',
+                catName: 'Ramas y Fusión',
+                safety: 'danger',
+                safetyLabel: '🔴 Reescribe Historial',
+                shortDesc: 'Mueve la base de tu rama para que parezca que la creaste a partir del último commit de main, dejando un historial recto.',
+                workUse: 'Muchas empresas lo usan para mantener un historial lineal limpio antes de abrir un Pull Request, o para limpiar commits propios con `rebase -i`.',
+                flags: [
+                    { flag: 'git rebase main', desc: 'Actualiza tu rama actual poniéndola encima de lo último de main.' },
+                    { flag: 'git rebase -i HEAD~3', desc: 'Modo interactivo para unir (squash) o reordenar tus últimos 3 commits locales.' },
+                    { flag: 'git rebase --abort', desc: '🛟 Salvavidas: Cancela el rebase inmediatamente si algo sale mal y deja todo como estaba.' }
+                ],
+                tip: 'REGLA DE ORO: NUNCA hagas `git rebase` sobre ramas públicas compartidas como `main` o `develop`. Úsalo solo en tu propia rama.',
+                simCmd: 'git log --oneline'
+            },
+            {
+                id: 'cherry-pick',
+                cmd: 'git cherry-pick',
+                syntax: 'git cherry-pick <hash-del-commit>',
+                category: 'branch',
+                catName: 'Ramas y Fusión',
+                safety: 'caution',
+                safetyLabel: '🟡 Precaución',
+                shortDesc: 'Copia un único commit específico de cualquier otra rama y lo aplica en tu rama actual sin traer el resto de la rama.',
+                workUse: 'Muy útil cuando arreglaste un bug urgente en `develop` y tu jefe te pide pasar únicamente ese arreglo puntual a `main` hoy mismo.',
+                flags: [
+                    { flag: 'git cherry-pick a1b2c3d', desc: 'Toma el commit con código a1b2c3d y lo aplica en tu rama actual.' },
+                    { flag: 'git cherry-pick --abort', desc: 'Cancela la operación si hubo conflicto.' }
+                ],
+                tip: 'Obtén primero el código corto del commit usando `git log --oneline` y luego haz `git cherry-pick <codigo>`.',
+                simCmd: 'git log --oneline'
+            },
+
+            // --- TRABAJO REMOTO ---
+            {
+                id: 'remote',
+                cmd: 'git remote',
+                syntax: 'git remote -v',
+                category: 'remote',
+                catName: 'Trabajo Remoto',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Muestra o administra la conexión entre tu repositorio local y el servidor en la nube (llamado por defecto "origin").',
+                workUse: 'Para verificar a qué dirección de GitHub o GitLab está conectado tu proyecto o cambiar la URL si migraron el servidor.',
+                flags: [
+                    { flag: 'git remote -v', desc: 'Muestra la URL exacta a donde se envían tus push y de donde bajan tus pull.' },
+                    { flag: 'git remote add origin <url>', desc: 'Conecta un repositorio local nuevo con un repositorio en la nube.' },
+                    { flag: 'git remote set-url origin <nueva-url>', desc: 'Actualiza la dirección del repositorio remoto.' }
+                ],
+                tip: 'El nombre `origin` no tiene nada de mágico: es simplemente el apodo estándar que Git le pone a la URL de GitHub.',
+                simCmd: 'git remote -v'
+            },
+            {
+                id: 'fetch',
+                cmd: 'git fetch',
+                syntax: 'git fetch origin',
+                category: 'remote',
+                catName: 'Trabajo Remoto',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Consulta el servidor remoto y descarga la información de qué commits o ramas nuevas subieron tus compañeros, SIN tocar tus archivos.',
+                workUse: 'Ideal para revisar qué ha hecho tu equipo en GitHub o bajar una rama nueva que creó un compañero sin alterar tu código actual.',
+                flags: [
+                    { flag: 'git fetch', desc: 'Descarga todas las novedades del servidor de forma 100% segura.' },
+                    { flag: 'git fetch --all --prune', desc: 'Actualiza la lista de ramas remotas y limpia las que ya fueron borradas en GitHub.' }
+                ],
+                tip: '`git fetch` es el comando más seguro para mirar qué hay de nuevo en la nube porque jamás genera conflictos en tu carpeta de trabajo.',
+                simCmd: 'git fetch'
+            },
+            {
+                id: 'pull',
+                cmd: 'git pull',
+                syntax: 'git pull origin <rama>',
+                category: 'remote',
+                catName: 'Trabajo Remoto',
+                safety: 'caution',
+                safetyLabel: '🟡 Precaución',
+                shortDesc: 'Descarga los últimos commits de tus compañeros desde GitHub y los fusiona inmediatamente en tu carpeta de trabajo (`fetch` + `merge`).',
+                workUse: 'Lo primero que debes hacer cada mañana al encender la computadora en el trabajo es hacer `git pull` para trabajar con el código al día.',
+                flags: [
+                    { flag: 'git pull', desc: 'Trae y fusiona los últimos cambios de la rama actual.' },
+                    { flag: 'git pull --rebase', desc: 'Trae los cambios de tus compañeros y coloca tus commits locales encima sin crear un commit de merge extra.' }
+                ],
+                tip: 'Haz siempre `git pull` ANTES de empezar a programar o antes de hacer `git push` para evitar choques con el código de tu equipo.',
+                simCmd: 'git pull'
+            },
+            {
+                id: 'push',
+                cmd: 'git push',
+                syntax: 'git push origin <rama>',
+                category: 'remote',
+                catName: 'Trabajo Remoto',
+                safety: 'caution',
+                safetyLabel: '🟡 Precaución',
+                shortDesc: 'Envía los commits que guardaste en tu repositorio local hacia la nube (GitHub/GitLab) para compartirlos con el equipo.',
+                workUse: 'Cuando terminas tus commits locales y quieres respaldarlos en la nube o crear un Pull Request / Merge Request.',
+                flags: [
+                    { flag: 'git push', desc: 'Sube tus commits de la rama actual a GitHub.' },
+                    { flag: 'git push -u origin mi-rama', desc: 'Se usa la primera vez que subes una rama nueva que acabas de crear en tu PC.' },
+                    { flag: '--force-with-lease', desc: 'Si necesitas forzar un push en tu rama personal, usa esto en vez de `--force` porque protege los cambios de otros.' }
+                ],
+                tip: 'Nunca uses `git push --force` en `main` o `develop`, ya que borrarías los commits de tus compañeros de trabajo.',
+                simCmd: 'git push'
+            },
+
+            // --- HISTORIAL E INSPECCIÓN ---
+            {
+                id: 'log',
+                cmd: 'git log',
+                syntax: 'git log --oneline --graph',
+                category: 'history',
+                catName: 'Historial e Inspección',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Muestra la lista cronológica de todos los commits realizados, quién los hizo, cuándo y con qué mensaje.',
+                workUse: 'Para revisar el historial del proyecto, copiar el código (hash) de un commit anterior o ver el dibujo de las ramas.',
+                flags: [
+                    { flag: 'git log --oneline', desc: 'Muestra cada commit en una sola línea compacta y fácil de leer.' },
+                    { flag: 'git log --oneline --graph --all', desc: 'Dibuja en la consola el árbol completo de ramas y commits.' },
+                    { flag: 'git log -n 5', desc: 'Muestra únicamente los últimos 5 commits.' }
+                ],
+                tip: 'Si al hacer `git log` en tu terminal te quedas atrapado y no puedes escribir, presiona la tecla `q` (Quit) para salir.',
+                simCmd: 'git log --oneline'
+            },
+            {
+                id: 'show',
+                cmd: 'git show',
+                syntax: 'git show <hash-commit>',
+                category: 'history',
+                catName: 'Historial e Inspección',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Abre una radiografía completa de un commit específico: autor, fecha, mensaje y exactamente qué líneas de código cambió.',
+                workUse: 'Cuando quieres saber qué hizo exactamente el último commit o inspeccionar un commit de un compañero.',
+                flags: [
+                    { flag: 'git show', desc: 'Muestra el detalle completo del último commit realizado (HEAD).' },
+                    { flag: 'git show a1b2c3d', desc: 'Muestra qué se modificó en el commit a1b2c3d.' }
+                ],
+                tip: 'Usa `git show --stat` si solo quieres ver qué archivos fueron tocados en ese commit sin ver todo el código.',
+                simCmd: 'git show'
+            },
+            {
+                id: 'blame',
+                cmd: 'git blame',
+                syntax: 'git blame <archivo>',
+                category: 'history',
+                catName: 'Historial e Inspección',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Muestra quién fue la última persona que modificó cada línea de un archivo, en qué fecha y en qué commit.',
+                workUse: 'No es para "culpar" a nadie, sino para saber a qué compañero preguntarle el contexto de por qué se programó cierta lógica así.',
+                flags: [
+                    { flag: 'git blame app.js', desc: 'Muestra autor y commit línea por línea del archivo app.js.' },
+                    { flag: 'git blame -L 10,25 app.js', desc: 'Revisa únicamente desde la línea 10 hasta la línea 25.' }
+                ],
+                tip: 'Con el código de commit que te da `git blame`, puedes hacer `git show <codigo>` para entender por qué se hizo ese cambio.',
+                simCmd: 'git blame app.js'
+            },
+            {
+                id: 'reflog',
+                cmd: 'git reflog',
+                syntax: 'git reflog',
+                category: 'history',
+                catName: 'Historial e Inspección',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'LA CAJA NEGRA DE AVIÓN DE GIT. Registra absolutamente cada movimiento que hiciste en tu PC, incluso commits o ramas "borradas".',
+                workUse: 'Es el comando que te salvará la vida si hiciste un `git reset --hard` por error o borraste una rama con trabajo importante.',
+                flags: [
+                    { flag: 'git reflog', desc: 'Lista todos los estados por los que ha pasado tu puntero HEAD con su código hash.' }
+                ],
+                tip: 'Si perdiste algo hoy, haz `git reflog`, busca el código de antes del accidente y haz `git reset --hard <codigo>`. ¡Magia pura!',
+                simCmd: 'git reflog'
+            },
+            {
+                id: 'shortlog',
+                cmd: 'git shortlog',
+                syntax: 'git shortlog -sn',
+                category: 'history',
+                catName: 'Historial e Inspección',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Agrupa los commits por autor o muestra el ranking de cuántos commits ha aportado cada miembro del equipo.',
+                workUse: 'Muy útil para armar notas de lanzamiento (Release Notes) o ver quiénes han trabajado más en el repositorio.',
+                flags: [
+                    { flag: 'git shortlog -sn', desc: 'Muestra la tabla de posiciones con la cantidad de commits por cada desarrollador.' }
+                ],
+                tip: 'Añade `--no-merges` para contar únicamente commits de código real sin contar los merges.',
+                simCmd: 'git shortlog -sn'
+            },
+            {
+                id: 'tag',
+                cmd: 'git tag',
+                syntax: 'git tag -a v1.0.0 -m "Versión 1.0"',
+                category: 'history',
+                catName: 'Historial e Inspección',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Coloca un marcador fijo con nombre (como v1.0.0 o v2.4.1) sobre un commit importante para marcar lanzamientos a producción.',
+                workUse: 'Cada vez que tu empresa saca una versión nueva a los clientes, se crea un tag para saber exactamente qué código salió ese día.',
+                flags: [
+                    { flag: 'git tag', desc: 'Lista todas las versiones etiquetadas del proyecto.' },
+                    { flag: 'git tag -a v1.2.0 -m "Release Mayo"', desc: 'Crea una etiqueta oficial anotada con fecha y autor.' },
+                    { flag: 'git push origin --tags', desc: 'Sube las etiquetas creadas a GitHub (el push normal no las sube solo).' }
+                ],
+                tip: 'A diferencia de las ramas que avanzan con cada commit, un `tag` nunca se mueve: queda clavado para siempre en esa versión.',
+                simCmd: 'git tag v1.0.0'
+            },
+
+            // --- TEMPORAL / EMERGENCIAS / DESHACER ---
+            {
+                id: 'stash',
+                cmd: 'git stash',
+                syntax: 'git stash  |  git stash pop',
+                category: 'undo',
+                catName: 'Temporal / Deshacer',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Guarda tus cambios actuales a medio terminar en un "cajón temporal" invisible y deja tu carpeta limpia al instante.',
+                workUse: 'Estás a mitad de un código que aún no compila y tu jefe te pide revisar urgente otra rama. Haces `git stash`, cambias de rama, y al volver haces `git stash pop`.',
+                flags: [
+                    { flag: 'git stash', desc: 'Guarda tus cambios modificados en el cajón y limpia tu directorio.' },
+                    { flag: 'git stash pop', desc: 'Saca los cambios del cajón y los devuelve a tus archivos.' },
+                    { flag: 'git stash list', desc: 'Muestra todos los paquetes que tienes guardados en el cajón temporal.' },
+                    { flag: 'git stash -u', desc: 'Incluye también los archivos nuevos (Untracked) dentro del cajón.' }
+                ],
+                tip: 'Puedes ponerle nombre a lo que guardas usando `git stash push -m "avance formulario"` para no olvidar qué era.',
+                simCmd: 'git stash'
+            },
+            {
+                id: 'reset',
+                cmd: 'git reset',
+                syntax: 'git reset [--soft | --mixed | --hard] HEAD~1',
+                category: 'undo',
+                catName: 'Temporal / Deshacer',
+                safety: 'danger',
+                safetyLabel: '🔴 Reescribe Historial',
+                shortDesc: 'Retrocede la aguja de tu rama hacia un commit anterior. Dependiendo del flag (--soft o --hard), conserva o borra los cambios.',
+                workUse: 'Para deshacer el último commit que hiciste en tu PC antes de subirlo a GitHub.',
+                flags: [
+                    { flag: 'git reset --soft HEAD~1', desc: '🟢 El mejor amigo: Deshace el último commit pero deja TODO tu código intacto en Staging listo para volver a hacer commit.' },
+                    { flag: 'git reset HEAD~1 (mixed)', desc: '🟡 Deshace el último commit y saca los archivos de Staging, pero conserva tu código en la carpeta.' },
+                    { flag: 'git reset --hard HEAD~1', desc: '🔴 Peligroso: Deshace el último commit y BORRA también todos los cambios de tus archivos.' }
+                ],
+                tip: 'En el 90% de los casos en el trabajo, lo que realmente quieres usar es `git reset --soft HEAD~1` porque nunca pierdes tu código escrito.',
+                simCmd: 'git reset --soft HEAD~1'
+            },
+            {
+                id: 'revert',
+                cmd: 'git revert',
+                syntax: 'git revert <hash-commit>',
+                category: 'undo',
+                catName: 'Temporal / Deshacer',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Deshace los cambios de un commit anterior creando un NUEVO commit con la operación exactamente inversa, sin borrar el historial.',
+                workUse: 'LA FORMA CORRECTA de deshacer algo que YA subiste a GitHub (`git push`) en una rama compartida con tu equipo.',
+                flags: [
+                    { flag: 'git revert HEAD', desc: 'Crea un nuevo commit que anula los cambios introducidos en el último commit.' },
+                    { flag: 'git revert a1b2c3d', desc: 'Anula únicamente los cambios de ese commit específico aunque sea antiguo.' }
+                ],
+                tip: 'Diferencia clave: `git reset` borra el pasado (solo para commits locales); `git revert` crea un commit nuevo que compensa el error (ideal si ya hiciste push).',
+                simCmd: 'git revert HEAD'
+            },
+            {
+                id: 'clean',
+                cmd: 'git clean',
+                syntax: 'git clean -n  |  git clean -fd',
+                category: 'undo',
+                catName: 'Temporal / Deshacer',
+                safety: 'danger',
+                safetyLabel: '🔴 Irreversible',
+                shortDesc: 'Elimina de tu carpeta todos los archivos nuevos basura que no están siendo rastreados por Git (Untracked files).',
+                workUse: 'Cuando un script o compilación generó decenas de archivos temporales nuevos que quieres limpiar de un solo golpe.',
+                flags: [
+                    { flag: 'git clean -n', desc: '🟢 Simulacro seguro: Te muestra la lista de qué archivos se borrarían, pero NO borra ninguno.' },
+                    { flag: 'git clean -fd', desc: '🔴 Borra de verdad todos los archivos y carpetas no rastreados.' }
+                ],
+                tip: 'Ejecuta SIEMPRE primero `git clean -n` para ver qué se va a eliminar antes de correr `git clean -fd`.',
+                simCmd: 'git clean -n'
+            },
+            {
+                id: 'bisect',
+                cmd: 'git bisect',
+                syntax: 'git bisect start',
+                category: 'undo',
+                catName: 'Temporal / Deshacer',
+                safety: 'safe',
+                safetyLabel: '🟢 Seguro',
+                shortDesc: 'Modo detective con búsqueda binaria: te ayuda a encontrar exactamente en cuál de los últimos 500 commits se introdujo un bug.',
+                workUse: 'Sabes que hace una semana la app funcionaba bien y hoy falla, pero hay 100 commits en medio y no sabes cuál rompió todo.',
+                flags: [
+                    { flag: 'git bisect start', desc: 'Inicia el asistente detective.' },
+                    { flag: 'git bisect bad / good', desc: 'Le indicas a Git si el commit actual tiene el fallo (bad) o funcionaba bien (good).' },
+                    { flag: 'git bisect reset', desc: 'Termina la búsqueda y te regresa a tu rama normal.' }
+                ],
+                tip: 'Con `git bisect`, revisar 1000 commits toma solo 10 pruebas porque Git va partiendo el historial a la mitad cada vez.',
+                simCmd: 'git log --oneline'
+            }
+        ];
+
+        /* =====================================================================
+           2. ESCENARIOS DEL BOTÓN DE PÁNICO / SALVAVIDAS LABORAL
+           ===================================================================== */
+        const PANIC_SCENARIOS = [
+            {
+                id: 'wrong-branch',
+                icon: 'fa-code-branch',
+                color: 'amber',
+                title: '1. "¡Hice commit en la rama equivocada (ej. en main en vez de mi rama)!"',
+                situation: 'Estabas programando concentrado, hiciste `git add .` y `git commit`, y de pronto ves que estabas parado en `main` en lugar de una rama nueva. Aún no has hecho push.',
+                steps: [
+                    {
+                        label: 'Paso 1: Crea la rama nueva donde sí debía ir ese commit (la rama nueva copiará el commit)',
+                        cmd: 'git branch feature/mi-tarea-correcta'
+                    },
+                    {
+                        label: 'Paso 2: Retrocede la rama main un commit hacia atrás para dejarla limpia como estaba',
+                        cmd: 'git reset --hard HEAD~1'
+                    },
+                    {
+                        label: 'Paso 3: Muévete a tu rama nueva. ¡Allí estará tu commit intacto y main quedó impecable!',
+                        cmd: 'git switch feature/mi-tarea-correcta'
+                    }
+                ],
+                reassurance: '100% seguro: Al crear la rama primero en el Paso 1, el commit queda guardado en esa rama antes de limpiar main.'
+            },
+            {
+                id: 'wrong-message',
+                icon: 'fa-pen-nib',
+                color: 'blue',
+                title: '2. "¡Me equivoqué en el mensaje del último commit o me faltó incluir un archivo!"',
+                situation: 'Acabas de hacer `git commit -m "avanse final"` con una falta de ortografía o te diste cuenta de que olvidaste guardar un archivo que iba en ese mismo commit.',
+                steps: [
+                    {
+                        label: 'Opción A (Solo corregir el texto del último commit):',
+                        cmd: 'git commit --amend -m "feat: avance final del módulo de pagos"'
+                    },
+                    {
+                        label: 'Opción B (Si olvidaste meter un archivo en ese último commit, agrégalo y únelo sin cambiar mensaje):',
+                        cmd: 'git add archivo-olvidado.js && git commit --amend --no-edit'
+                    }
+                ],
+                reassurance: 'Úsalo libremente siempre que ese último commit aún no haya sido subido con `git push`.'
+            },
+            {
+                id: 'hard-reset-recovery',
+                icon: 'fa-clock-rotate-left',
+                color: 'red',
+                title: '3. "¡Hice un git reset --hard o borré una rama por error y perdí mis commits!"',
+                situation: 'Ejecutaste un comando destructivo, tus commits desaparecieron de `git log` y sientes que perdiste días de trabajo.',
+                steps: [
+                    {
+                        label: 'Paso 1: Abre la "Caja Negra" de Git para ver el historial secreto de todos tus movimientos:',
+                        cmd: 'git reflog'
+                    },
+                    {
+                        label: 'Paso 2: Busca en la lista la línea justo ANTES del accidente (ej. "HEAD@{2}: commit: mi trabajo") y copia su código corto (ej. 7f3a91b).',
+                        cmd: '# Ejemplo visual: 7f3a91b HEAD@{2}: commit: feat: reporte terminado'
+                    },
+                    {
+                        label: 'Paso 3: Restaura tu rama o crea una rama nueva apuntando a ese código mágico:',
+                        cmd: 'git reset --hard 7f3a91b'
+                    }
+                ],
+                reassurance: 'Git guarda en `reflog` todos los commits durante 30 a 90 días aunque no pertenezcan a ninguna rama. ¡Nada se perdió!'
+            },
+            {
+                id: 'merge-conflict',
+                icon: 'fa-bolt',
+                color: 'purple',
+                title: '4. "¡Salió CONFLICTO DE MERGE (Merge Conflict) lleno de <<<<<<< y tengo miedo!"',
+                situation: 'Hiciste `git merge` o `git pull` y Git dice "CONFLICT". Tus archivos tienen símbolos `<<<<<<< HEAD`, `=======` y `>>>>>>>`.',
+                steps: [
+                    {
+                        label: 'Si entraste en pánico y quieres cancelar el merge inmediatamente para dejar todo como estaba hace 10 segundos:',
+                        cmd: 'git merge --abort'
+                    },
+                    {
+                        label: 'Si quieres resolverlo sin miedo: 1) Abre el archivo en VS Code y haz clic en "Accept Current", "Accept Incoming" o "Accept Both" para borrar las marcas <<< === >>>.',
+                        cmd: '# Edita el archivo en VS Code hasta que el código quede como debe quedar'
+                    },
+                    {
+                        label: '2) Una vez limpio el archivo, dile a Git que ya lo resolviste haciendo add y commit:',
+                        cmd: 'git add . && git commit -m "chore: resolver conflictos de merge"'
+                    }
+                ],
+                reassurance: 'Un conflicto NO es un error tuyo: es solo Git preguntándote amablemente cuál de las dos versiones de una misma línea prefieres conservar.'
+            },
+            {
+                id: 'urgent-branch-switch',
+                icon: 'fa-person-running',
+                color: 'emerald',
+                title: '5. "¡Necesito cambiar de rama URGENTE pero tengo cambios a medias que no quiero commitear!"',
+                situation: 'Estás a mitad de una tarea con archivos modificados y tu líder técnico te pide pasar a `main` para revisar un bug urgente.',
+                steps: [
+                    {
+                        label: 'Paso 1: Guarda todo tu desorden temporalmente en el cajón mágico (tu carpeta quedará limpia):',
+                        cmd: 'git stash push -m "trabajo a medias en login"'
+                    },
+                    {
+                        label: 'Paso 2: Cambia tranquilo a la otra rama, atiende la emergencia y luego regresa a tu rama:',
+                        cmd: 'git switch main'
+                    },
+                    {
+                        label: 'Paso 3: Cuando vuelvas a tu rama original, recupera tus archivos exactamente como los dejaste:',
+                        cmd: 'git stash pop'
+                    }
+                ],
+                reassurance: 'Tu código a medio hacer queda 100% protegido dentro del stash mientras cambias de rama.'
+            },
+            {
+                id: 'undo-pushed-commit',
+                icon: 'fa-cloud-Bolt',
+                color: 'orange',
+                title: '6. "¡Subí un commit con un error a GitHub (ya hice git push) y quiero deshacerlo!"',
+                situation: 'Hiciste `git push` a una rama compartida del equipo y te diste cuenta de que ese commit rompe algo.',
+                steps: [
+                    {
+                        label: 'Paso 1: NO uses reset --hard porque ya está en la nube. Usa `revert` para crear un commit inverso seguro:',
+                        cmd: 'git revert HEAD --no-edit'
+                    },
+                    {
+                        label: 'Paso 2: Sube ese nuevo commit de corrección normalmente a GitHub:',
+                        cmd: 'git push'
+                    }
+                ],
+                reassurance: 'A tus compañeros no se les romperá su repositorio porque `git revert` respeta la historia compartida.'
+            }
+        ];
+
+        /* =====================================================================
+           3. ESTADO DEL VISUALIZADOR DE LAS 4 ÁREAS (MÓDULO 1)
+           ===================================================================== */
+        let flowState = {
+            working: [],
+            staging: [],
+            local: [
+                { id: 'c1', hash: 'a1b2c3d', msg: 'Commit inicial (v1.0)', tag: 'Sincronizado' }
+            ],
+            remote: [
+                { id: 'c1', hash: 'a1b2c3d', msg: 'Commit inicial (v1.0)', tag: 'origin/main' }
+            ],
+            remoteAhead: false
+        };
+
+        function renderFlowZones() {
+            const wEl = document.getElementById('files-working');
+            const sEl = document.getElementById('files-staging');
+            const lEl = document.getElementById('files-local');
+            const rEl = document.getElementById('files-remote');
+
+            // Render Working Directory
+            if (flowState.working.length === 0) {
+                wEl.innerHTML = `<div class="p-3 rounded-xl border border-dashed border-gh-border text-center text-xs text-gh-muted">
+                    <i class="fa-solid fa-check text-emerald-400 mr-1"></i> Sin modificaciones pendientes (Clean)
+                </div>`;
+            } else {
+                wEl.innerHTML = flowState.working.map(f => `
+                    <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/40 flex items-center justify-between text-xs animate-[packetFly_0.4s_ease]">
+                        <div class="flex items-center gap-2 font-mono text-amber-300">
+                            <i class="fa-regular fa-file-code"></i> <span>${f.name}</span>
+                        </div>
+                        <span class="text-[10px] font-mono bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded">${f.status}</span>
+                    </div>
+                `).join('');
+            }
+
+            // Render Staging Area
+            if (flowState.staging.length === 0) {
+                sEl.innerHTML = `<div class="p-3 rounded-xl border border-dashed border-gh-border text-center text-xs text-gh-muted">
+                    Tarima vacía (Usa <code class="text-emerald-400">git add .</code>)
+                </div>`;
+            } else {
+                sEl.innerHTML = flowState.staging.map(f => `
+                    <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-between text-xs">
+                        <div class="flex items-center gap-2 font-mono text-emerald-300">
+                            <i class="fa-solid fa-file-circle-check"></i> <span>${f.name}</span>
+                        </div>
+                        <span class="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Listo (Staged)</span>
+                    </div>
+                `).join('');
+            }
+
+            // Render Local Repo
+            lEl.innerHTML = flowState.local.slice().reverse().map((c, idx) => `
+                <div class="p-2.5 rounded-xl ${idx === 0 ? 'bg-blue-500/15 border border-blue-500/50' : 'bg-gh-bg border border-gh-border'} flex items-center justify-between text-xs">
+                    <div class="truncate pr-2">
+                        <div class="flex items-center gap-1.5 font-mono">
+                            <span class="text-blue-400 font-bold">${c.hash}</span>
+                            ${idx === 0 ? '<span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-400/30 px-1.5 rounded">HEAD</span>' : ''}
+                        </div>
+                        <div class="text-gray-300 text-[11px] truncate mt-0.5">${c.msg}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Render Remote Repo
+            rEl.innerHTML = flowState.remote.slice().reverse().map((c, idx) => `
+                <div class="p-2.5 rounded-xl ${idx === 0 ? 'bg-purple-500/15 border border-purple-500/50' : 'bg-gh-bg border border-gh-border'} flex items-center justify-between text-xs">
+                    <div class="truncate pr-2">
+                        <div class="flex items-center gap-1.5 font-mono">
+                            <span class="text-purple-400 font-bold">${c.hash}</span>
+                            ${idx === 0 ? '<span class="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 rounded">origin/main</span>' : ''}
+                        </div>
+                        <div class="text-gray-300 text-[11px] truncate mt-0.5">${c.msg}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function highlightZones(zoneIds) {
+            document.querySelectorAll('.zone-card').forEach(el => el.classList.remove('glow-active'));
+            zoneIds.forEach(id => {
+                const z = document.getElementById(id);
+                if (z) z.classList.add('glow-active');
+            });
+        }
+
+        function updateFlowExplanation(cmdTag, title, desc, stepText) {
+            document.getElementById('flow-cmd-tag').textContent = cmdTag;
+            document.getElementById('flow-exp-title').textContent = title;
+            document.getElementById('flow-exp-desc').innerHTML = desc;
+            document.getElementById('flow-step-indicator').textContent = stepText;
+        }
+
+        function triggerFlowAction(action) {
+            if (action === 'edit') {
+                flowState.working = [
+                    { name: 'login.js', status: 'Modificado (M)' },
+                    { name: 'estilos.css', status: 'Nuevo (U)' }
+                ];
+                highlightZones(['zone-working']);
+                updateFlowExplanation(
+                    'Edición en VS Code',
+                    '¡Modificaste archivos en tu Carpeta de Trabajo!',
+                    'Tus cambios están en <strong>1. Working Directory</strong>. Git ve que tocaste <code>login.js</code> y <code>estilos.css</code>, pero aún no están preparados. El siguiente paso natural es hacer clic en <strong class="text-emerald-400">git add .</strong>',
+                    'Paso 1/4: Archivos modificados en tu PC'
+                );
+                showToast('Archivos editados en tu Working Directory', 'amber');
+            }
+            else if (action === 'add') {
+                if (flowState.working.length === 0) {
+                    flowState.working = [
+                        { name: 'login.js', status: 'Modificado (M)' },
+                        { name: 'estilos.css', status: 'Nuevo (U)' }
+                    ];
+                }
+                flowState.staging = [...flowState.working];
+                flowState.working = [];
+                highlightZones(['zone-working', 'zone-staging']);
+                updateFlowExplanation(
+                    'git add .',
+                    'Tus archivos viajaron de tu Escritorio al Área de Preparación (Staging)',
+                    'Con <code class="text-emerald-400">git add .</code> subiste tus cambios a la tarima (<strong>2. Staging Area</strong>). Todavía no son un commit permanente, solo están posando para la foto. Ahora haz clic en <strong class="text-blue-400">git commit</strong>.',
+                    'Paso 2/4: Archivos en Staging Area listos para commit'
+                );
+                showToast('git add . → Archivos movidos a Staging Area', 'emerald');
+            }
+            else if (action === 'commit') {
+                if (flowState.staging.length === 0) {
+                    // Auto-preparar para que el usuario siempre vea la demostración fluida
+                    flowState.staging = [{ name: 'login.js', status: 'Staged' }];
+                }
+                const newHash = Math.random().toString(16).substring(2, 9);
+                flowState.local.push({
+                    id: 'c_' + newHash,
+                    hash: newHash,
+                    msg: 'feat: agregar pantalla login (' + flowState.staging.length + ' arch.)',
+                    tag: 'Local'
+                });
+                flowState.staging = [];
+                highlightZones(['zone-staging', 'zone-local']);
+                updateFlowExplanation(
+                    'git commit -m "feat: agregar login"',
+                    '¡Fotografía guardada en tu Repositorio Local (.git)!',
+                    'Tus archivos de Staging se convirtieron en el commit <code class="text-blue-400">' + newHash + '</code> dentro de <strong>3. Repositorio Local</strong>. Está 100% seguro en tu disco duro, pero tus compañeros en GitHub aún no lo ven. Haz clic en <strong class="text-purple-400">git push</strong>.',
+                    'Paso 3/4: Commit guardado en tu PC (Falta subir a GitHub)'
+                );
+                showToast('git commit → Nuevo commit guardado localmente', 'blue');
+            }
+            else if (action === 'push') {
+                if (flowState.local.length <= flowState.remote.length) {
+                    const newHash = Math.random().toString(16).substring(2, 9);
+                    flowState.local.push({
+                        id: 'c_' + newHash,
+                        hash: newHash,
+                        msg: 'feat: avance listo para el equipo',
+                        tag: 'Local'
+                    });
+                }
+                flowState.remote = JSON.parse(JSON.stringify(flowState.local));
+                highlightZones(['zone-local', 'zone-remote']);
+                updateFlowExplanation(
+                    'git push origin main',
+                    '¡Commits enviados desde tu PC hacia la Nube (GitHub/GitLab)!',
+                    'Con <code class="text-purple-400">git push</code> copiaste todos los commits nuevos de <strong>3. Repositorio Local</strong> hacia <strong>4. Repositorio Remoto</strong>. Ahora todo tu equipo de trabajo puede ver y descargar tus avances.',
+                    'Paso 4/4: ¡Repositorio local y remoto 100% sincronizados!'
+                );
+                showToast('git push → Código publicado en GitHub con éxito', 'purple');
+            }
+            else if (action === 'fetch') {
+                const mateHash = '9f8e7d6';
+                const alreadyExists = flowState.remote.some(c => c.hash === mateHash);
+                if (!alreadyExists) {
+                    flowState.remote.push({
+                        id: 'c_mate',
+                        hash: mateHash,
+                        msg: 'fix: commit de tu compañero en GitHub',
+                        tag: 'origin/main'
+                    });
+                }
+                highlightZones(['zone-remote', 'zone-local']);
+                updateFlowExplanation(
+                    'git fetch',
+                    'Revisando qué subieron tus compañeros a GitHub (Sin tocar tus archivos)',
+                    'Un compañero subió el commit <code class="text-purple-400">9f8e7d6</code> a GitHub. Con <code class="text-cyan-400">git fetch</code> tu Git ya sabe que existe en <strong>4. Repositorio Remoto</strong>, pero NO modificó tus archivos locales. Haz clic en <strong class="text-teal-400">git pull</strong> para traerlo.',
+                    'Novedades detectadas en el servidor remoto'
+                );
+                showToast('git fetch → Detectado nuevo commit de un compañero en GitHub', 'blue');
+            }
+            else if (action === 'pull') {
+                const mateHash = '9f8e7d6';
+                const existsInRemote = flowState.remote.some(c => c.hash === mateHash);
+                if (!existsInRemote) {
+                    flowState.remote.push({
+                        id: 'c_mate',
+                        hash: mateHash,
+                        msg: 'fix: commit de tu compañero en GitHub',
+                        tag: 'origin/main'
+                    });
+                }
+                flowState.local = JSON.parse(JSON.stringify(flowState.remote));
+                highlightZones(['zone-remote', 'zone-local', 'zone-working']);
+                updateFlowExplanation(
+                    'git pull',
+                    '¡Cambios de tus compañeros descargados y actualizados en tu PC!',
+                    '<code class="text-teal-400">git pull</code> hizo dos cosas por ti: descargó los commits de <strong>4. Repositorio Remoto</strong> a <strong>3. Repositorio Local</strong> y actualizó inmediatamente tus archivos en <strong>1. Working Directory</strong>.',
+                    'Tu PC tiene ahora los últimos cambios del equipo'
+                );
+                showToast('git pull → Cambios remotos descargados a tu carpeta', 'emerald');
+            }
+            else if (action === 'restore') {
+                flowState.working = [];
+                flowState.staging = [];
+                highlightZones(['zone-working', 'zone-staging']);
+                updateFlowExplanation(
+                    'git restore .',
+                    'Cambios temporales descartados y carpeta limpia',
+                    'Con <code class="text-orange-400">git restore</code> limpiaste las modificaciones no confirmadas en <strong>1. Working Directory</strong>, dejando tus archivos exactamente igual a como estaban en el último commit.',
+                    'Cambios descartados • Carpeta limpia'
+                );
+                showToast('git restore → Cambios no guardados descartados', 'amber');
+            }
+            else if (action === 'reset') {
+                if (flowState.local.length > 1) {
+                    flowState.local.pop();
+                    flowState.staging = [{ name: 'login.js', status: 'De vuelta en Staging' }];
+                    highlightZones(['zone-local', 'zone-staging']);
+                    updateFlowExplanation(
+                        'git reset --soft HEAD~1',
+                        '¡Deshiciste el último commit local sin perder ni una línea de código!',
+                        'El último commit salió de <strong>3. Repositorio Local</strong> y sus archivos regresaron intactos a <strong>2. Staging Area</strong> por si quieres seguir editándolos o cambiar el mensaje del commit.',
+                        'Último commit devuelto a Staging Area'
+                    );
+                    showToast('git reset --soft HEAD~1 → Commit devuelto a Staging', 'amber');
+                } else {
+                    showToast('Solo queda el commit inicial. Haz un commit nuevo primero.', 'amber');
+                }
+            }
+
+            renderFlowZones();
+        }
+
+        function resetFlowVisualizer() {
+            flowState = {
+                working: [],
+                staging: [],
+                local: [{ id: 'c1', hash: 'a1b2c3d', msg: 'Commit inicial (v1.0)', tag: 'Sincronizado' }],
+                remote: [{ id: 'c1', hash: 'a1b2c3d', msg: 'Commit inicial (v1.0)', tag: 'origin/main' }],
+                remoteAhead: false
+            };
+            highlightZones([]);
+            updateFlowExplanation(
+                'Estado Inicial',
+                'Todo limpio y sincronizado',
+                'Tu archivo <code class="text-amber-300">app.js</code> está en su versión v1.0 tanto en tu PC como en GitHub. Haz clic en <strong>"1. Editar"</strong> arriba o prueba <code class="text-emerald-400">git add .</code> para ver cómo reacciona Git paso a paso.',
+                'Estado: Listo para interactuar'
+            );
+            renderFlowZones();
+            showToast('Visualizador de las 4 áreas reiniciado', 'blue');
+        }
+
+        /* =====================================================================
+           4. SIMULADOR DE TERMINAL Y GRAFO DE RAMAS EN VIVO (MÓDULO 2)
+           ===================================================================== */
+        let simState = {
+            commits: [],
+            branches: {},
+            HEAD: 'main',
+            workingFiles: [],
+            stagedFiles: [],
+            stashes: [],
+            reflog: [],
+            remoteBranchHash: null
+        };
+
+        function initSandbox() {
+            simState = {
+                commits: [
+                    { hash: '10a4f2c', msg: 'chore: commit inicial', parent: null, secondParent: null, branchTrack: 'main', x: 90, y: 100 },
+                    { hash: '24b8e1d', msg: 'feat: estructura base', parent: '10a4f2c', secondParent: null, branchTrack: 'main', x: 210, y: 100 }
+                ],
+                branches: {
+                    'main': '24b8e1d'
+                },
+                HEAD: 'main',
+                workingFiles: [],
+                stagedFiles: [],
+                stashes: [],
+                reflog: [
+                    { hash: '24b8e1d', action: 'commit: feat: estructura base' },
+                    { hash: '10a4f2c', action: 'commit (initial): chore: commit inicial' }
+                ],
+                remoteBranchHash: '24b8e1d'
+            };
+            const termOut = document.getElementById('terminal-output');
+            termOut.innerHTML = `
+                <div class="text-gh-muted"># Bienvenido al Sandbox Interactivo Sin Miedo de Git Master Hub.</div>
+                <div class="text-gh-muted"># Escribe comandos abajo o usa los botones superiores para ver cómo se dibuja el grafo en tiempo real.</div>
+            `;
+            updateSimUI();
+        }
+
+        function resetSandbox() {
+            initSandbox();
+            showToast('Sandbox y grafo de ramas reiniciados', 'blue');
+        }
+
+        function loadPresetScenario(type) {
+            switchSection('simulator');
+            initSandbox();
+            setTimeout(() => runSimCommand('git switch -c feature/login'), 200);
+            setTimeout(() => runSimCommand('touch auth.js'), 500);
+            setTimeout(() => runSimCommand('git add .'), 800);
+            setTimeout(() => runSimCommand('git commit -m "feat: pantalla login"'), 1100);
+            setTimeout(() => runSimCommand('git switch main'), 1500);
+            setTimeout(() => runSimCommand('touch readme.md'), 1800);
+            setTimeout(() => runSimCommand('git add .'), 2100);
+            setTimeout(() => runSimCommand('git commit -m "docs: actualizar guia"'), 2400);
+            setTimeout(() => runSimCommand('git merge feature/login'), 2800);
+        }
+
+        function generateShortHash() {
+            return Math.random().toString(16).substring(2, 9);
+        }
+
+        function appendTerminalLine(cmd, outputHtml, isError = false) {
+            const termOut = document.getElementById('terminal-output');
+            const block = document.createElement('div');
+            block.className = 'space-y-1 border-b border-gh-border/30 pb-2';
+            block.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-400">dev@empresa</span>
+                    <span class="text-purple-400">(${simState.HEAD})</span>
+                    <span class="text-white font-semibold">$ ${cmd}</span>
+                </div>
+                <div class="${isError ? 'text-red-400' : 'text-gray-300'} pl-2 whitespace-pre-wrap">${outputHtml}</div>
+            `;
+            termOut.appendChild(block);
+            termOut.scrollTop = termOut.scrollHeight;
+        }
+
+        function clearTerminalOutput() {
+            document.getElementById('terminal-output').innerHTML = '';
+        }
+
+        function handleTerminalSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('terminal-input');
+            const rawCmd = input.value.trim();
+            if (!rawCmd) return;
+            input.value = '';
+            runSimCommand(rawCmd);
+        }
+
+        function runSimCommand(rawCmd) {
+            const cmd = rawCmd.trim();
+            const parts = cmd.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+            const mainBin = parts[0];
+
+            if (mainBin === 'clear') {
+                clearTerminalOutput();
+                return;
+            }
+
+            if (mainBin === 'touch' || mainBin === 'edit') {
+                const fileName = parts[1] || ('modulo_' + (simState.workingFiles.length + 1) + '.js');
+                if (!simState.workingFiles.includes(fileName)) {
+                    simState.workingFiles.push(fileName);
+                }
+                appendTerminalLine(cmd, `<span class="text-amber-300">Archivo '${fileName}' modificado en tu Working Directory. (Usa 'git status' o 'git add .')</span>`);
+                updateSimUI();
+                return;
+            }
+
+            if (mainBin !== 'git') {
+                appendTerminalLine(cmd, `Comando '${mainBin}' no reconocido. Prueba comandos con 'git ...' o 'touch archivo.js'.`, true);
+                return;
+            }
+
+            const sub = parts[1];
+
+            // --- git init ---
+            if (sub === 'init') {
+                appendTerminalLine(cmd, `Reinitialized existing Git repository in /home/dev/proyecto-trabajo/.git/`);
+            }
+            // --- git config ---
+            else if (sub === 'config') {
+                appendTerminalLine(cmd, `user.name=Desarrollador Pro\nuser.email=dev@empresa.com\ncore.editor=code --wait\ninit.defaultBranch=main`);
+            }
+            // --- git help ---
+            else if (sub === 'help' || !sub) {
+                appendTerminalLine(cmd, `Comandos disponibles en el simulador:\n  git status, git add ., git commit -m "msg"\n  git branch, git switch -c <rama>, git checkout <rama>\n  git merge <rama>, git reset --soft HEAD~1, git reset --hard HEAD~1\n  git revert HEAD, git stash, git stash pop, git log, git reflog, git push, git pull`);
+            }
+            // --- git status ---
+            else if (sub === 'status') {
+                let out = `On branch <strong class="text-purple-400">${simState.HEAD}</strong>\n`;
+                if (simState.stagedFiles.length === 0 && simState.workingFiles.length === 0) {
+                    out += `<span class="text-emerald-400">nothing to commit, working tree clean</span>`;
+                } else {
+                    if (simState.stagedFiles.length > 0) {
+                        out += `<span class="text-emerald-400">Changes to be committed:</span>\n  (use "git restore --staged <file>..." to unstage)\n`;
+                        simState.stagedFiles.forEach(f => { out += `\t<span class="text-emerald-300">modified/new:   ${f}</span>\n`; });
+                    }
+                    if (simState.workingFiles.length > 0) {
+                        out += `<span class="text-amber-400">Changes not staged for commit / Untracked:</span>\n  (use "git add <file>..." to update what will be committed)\n`;
+                        simState.workingFiles.forEach(f => { out += `\t<span class="text-amber-300">modified:   ${f}</span>\n`; });
+                    }
+                }
+                appendTerminalLine(cmd, out);
+            }
+            // --- git add ---
+            else if (sub === 'add') {
+                if (simState.workingFiles.length === 0) {
+                    // Si el usuario hace git add sin haber creado archivos, creamos uno automático para que su experiencia sea fluida
+                    simState.stagedFiles.push('app.js');
+                    appendTerminalLine(cmd, `<span class="text-emerald-400">Se detectó cambio en 'app.js' y se movió al Área de Staging. Listo para 'git commit'.</span>`);
+                } else {
+                    simState.stagedFiles.push(...simState.workingFiles);
+                    simState.workingFiles = [];
+                    appendTerminalLine(cmd, `<span class="text-emerald-400">Archivos agregados a Staging Area (${simState.stagedFiles.join(', ')}).</span>`);
+                }
+            }
+            // --- git restore ---
+            else if (sub === 'restore') {
+                if (parts.includes('--staged')) {
+                    simState.workingFiles.push(...simState.stagedFiles);
+                    simState.stagedFiles = [];
+                    appendTerminalLine(cmd, `<span class="text-amber-300">Archivos devueltos de Staging a tu Working Directory (tu código sigue intacto).</span>`);
+                } else {
+                    simState.workingFiles = [];
+                    appendTerminalLine(cmd, `<span class="text-orange-400">Cambios no guardados descartados del Working Directory.</span>`);
+                }
+            }
+            // --- git commit ---
+            else if (sub === 'commit') {
+                let msg = 'feat: actualización de código';
+                const mIndex = parts.indexOf('-m');
+                if (mIndex !== -1 && parts[mIndex + 1]) {
+                    msg = parts[mIndex + 1].replace(/^"|"$/g, '').replace(/^'|'$/g, '');
+                }
+                if (parts.includes('--amend')) {
+                    const currentHash = simState.branches[simState.HEAD];
+                    const currentCommit = simState.commits.find(c => c.hash === currentHash);
+                    if (currentCommit) {
+                        currentCommit.msg = msg + ' (amended)';
+                        appendTerminalLine(cmd, `[${simState.HEAD} ${currentCommit.hash}] ${currentCommit.msg}\n <span class="text-blue-400">Último commit actualizado con --amend sin crear nodo adicional.</span>`);
+                    }
+                } else {
+                    const newHash = generateShortHash();
+                    const parentHash = simState.branches[simState.HEAD];
+                    const lastX = simState.commits.length > 0 ? Math.max(...simState.commits.map(c => c.x)) : 40;
+                    const isMain = simState.HEAD === 'main';
+                    const newCommit = {
+                        hash: newHash,
+                        msg: msg,
+                        parent: parentHash,
+                        secondParent: null,
+                        branchTrack: simState.HEAD,
+                        x: lastX + 115,
+                        y: isMain ? 100 : 200
+                    };
+                    simState.commits.push(newCommit);
+                    simState.branches[simState.HEAD] = newHash;
+                    simState.stagedFiles = [];
+                    simState.reflog.unshift({ hash: newHash, action: `commit: ${msg}` });
+                    appendTerminalLine(cmd, `[${simState.HEAD} <strong class="text-blue-400">${newHash}</strong>] ${msg}\n 1 file changed, 18 insertions(+)`);
+                }
+            }
+            // --- git branch ---
+            else if (sub === 'branch') {
+                if (!parts[2]) {
+                    const list = Object.keys(simState.branches).map(b => 
+                        b === simState.HEAD ? `* <strong class="text-emerald-400">${b}</strong>` : `  ${b}`
+                    ).join('\n');
+                    appendTerminalLine(cmd, list);
+                } else if (parts[2] === '-d' || parts[2] === '-D') {
+                    const target = parts[3];
+                    if (!target || target === 'main') {
+                        appendTerminalLine(cmd, `error: No puedes borrar la rama principal 'main'.`, true);
+                    } else if (target === simState.HEAD) {
+                        appendTerminalLine(cmd, `error: No puedes borrar la rama '${target}' mientras estás parado en ella. Haz 'git switch main' primero.`, true);
+                    } else if (simState.branches[target]) {
+                        delete simState.branches[target];
+                        appendTerminalLine(cmd, `Deleted branch ${target}.`);
+                    } else {
+                        appendTerminalLine(cmd, `error: branch '${target}' not found.`, true);
+                    }
+                } else {
+                    const newBranch = parts[2];
+                    simState.branches[newBranch] = simState.branches[simState.HEAD];
+                    appendTerminalLine(cmd, `<span class="text-purple-400">Rama '${newBranch}' creada apuntando a ${simState.branches[simState.HEAD]}. (Usa 'git switch ${newBranch}' para moverte a ella)</span>`);
+                }
+            }
+            // --- git switch / git checkout ---
+            else if (sub === 'switch' || sub === 'checkout') {
+                const createFlag = parts.includes('-c') || parts.includes('-b');
+                const branchName = parts[parts.length - 1];
+                if (!branchName || branchName === sub) {
+                    appendTerminalLine(cmd, `Especifica el nombre de la rama. Ejemplo: git switch main`, true);
+                } else if (createFlag) {
+                    simState.branches[branchName] = simState.branches[simState.HEAD];
+                    simState.HEAD = branchName;
+                    simState.reflog.unshift({ hash: simState.branches[branchName], action: `checkout: moving to ${branchName}` });
+                    appendTerminalLine(cmd, `Switched to a new branch '<strong class="text-purple-400">${branchName}</strong>'`);
+                } else if (simState.branches[branchName]) {
+                    simState.HEAD = branchName;
+                    simState.reflog.unshift({ hash: simState.branches[branchName], action: `checkout: moving to ${branchName}` });
+                    appendTerminalLine(cmd, `Switched to branch '<strong class="text-purple-400">${branchName}</strong>'`);
+                } else {
+                    // Si la rama no existía, la creamos amablemente para que los botones rápidos funcionen siempre
+                    simState.branches[branchName] = simState.branches[simState.HEAD];
+                    simState.HEAD = branchName;
+                    appendTerminalLine(cmd, `Switched to branch '<strong class="text-purple-400">${branchName}</strong>'`);
+                }
+            }
+            // --- git merge ---
+            else if (sub === 'merge') {
+                const targetBranch = parts[2];
+                if (!targetBranch || !simState.branches[targetBranch]) {
+                    appendTerminalLine(cmd, `No existe la rama '${targetBranch || ''}'. Crea primero otra rama con 'git switch -c feature/login' y haz un commit.`, true);
+                } else if (targetBranch === simState.HEAD) {
+                    appendTerminalLine(cmd, `Ya estás en '${simState.HEAD}'. Primero cámbiate a 'main' con 'git switch main' y luego ejecuta 'git merge ${targetBranch}'.`, true);
+                } else {
+                    const sourceHash = simState.branches[targetBranch];
+                    const currentHash = simState.branches[simState.HEAD];
+                    if (sourceHash === currentHash) {
+                        appendTerminalLine(cmd, `Already up to date. (No hay commits diferentes para fusionar)`);
+                    } else {
+                        const mergeHash = generateShortHash();
+                        const lastX = Math.max(...simState.commits.map(c => c.x));
+                        const isMain = simState.HEAD === 'main';
+                        const mergeCommit = {
+                            hash: mergeHash,
+                            msg: `Merge branch '${targetBranch}' into ${simState.HEAD}`,
+                            parent: currentHash,
+                            secondParent: sourceHash,
+                            branchTrack: simState.HEAD,
+                            x: lastX + 115,
+                            y: isMain ? 100 : 200
+                        };
+                        simState.commits.push(mergeCommit);
+                        simState.branches[simState.HEAD] = mergeHash;
+                        simState.reflog.unshift({ hash: mergeHash, action: `merge ${targetBranch}: Merge made by the 'ort' strategy.` });
+                        appendTerminalLine(cmd, `<span class="text-teal-400">Merge made by the 'ort' strategy!</span>\n Commit de fusión <strong class="text-blue-400">${mergeHash}</strong> creado uniendo '${targetBranch}' dentro de '${simState.HEAD}'.`);
+                    }
+                }
+            }
+            // --- git reset ---
+            else if (sub === 'reset') {
+                const currentHash = simState.branches[simState.HEAD];
+                const currentCommit = simState.commits.find(c => c.hash === currentHash);
+                if (!currentCommit || !currentCommit.parent) {
+                    appendTerminalLine(cmd, `Ya estás en el commit inicial del repositorio, no se puede retroceder más.`, true);
+                } else {
+                    const isSoft = parts.includes('--soft');
+                    const isHard = parts.includes('--hard');
+                    const parentHash = currentCommit.parent;
+                    simState.branches[simState.HEAD] = parentHash;
+                    // Remover el commit huérfano del grafo visual si ninguna otra rama apunta a él
+                    const otherBranchUsesIt = Object.values(simState.branches).includes(currentHash);
+                    if (!otherBranchUsesIt) {
+                        simState.commits = simState.commits.filter(c => c.hash !== currentHash);
+                    }
+                    simState.reflog.unshift({ hash: parentHash, action: `reset: moving to HEAD~1` });
+                    if (isSoft) {
+                        simState.stagedFiles.push('cambios_del_commit.js');
+                        appendTerminalLine(cmd, `<span class="text-amber-300">HEAD ahora está en ${parentHash}. (--soft: El commit se deshizo pero tus cambios quedaron seguros en Staging Area)</span>`);
+                    } else if (isHard) {
+                        simState.workingFiles = [];
+                        simState.stagedFiles = [];
+                        appendTerminalLine(cmd, `<span class="text-red-400">HEAD is now at ${parentHash}. (--hard: Commit y cambios eliminados. ¡Recuerda que puedes verlos en 'git reflog'!)</span>`);
+                    } else {
+                        simState.workingFiles.push('cambios_del_commit.js');
+                        appendTerminalLine(cmd, `Unstaged changes after reset:\nM\tcambios_del_commit.js`);
+                    }
+                }
+            }
+            // --- git revert ---
+            else if (sub === 'revert') {
+                const currentHash = simState.branches[simState.HEAD];
+                const currentCommit = simState.commits.find(c => c.hash === currentHash);
+                const newHash = generateShortHash();
+                const lastX = Math.max(...simState.commits.map(c => c.x));
+                const isMain = simState.HEAD === 'main';
+                const revCommit = {
+                    hash: newHash,
+                    msg: `Revert "${currentCommit ? currentCommit.msg : 'commit'}"`,
+                    parent: currentHash,
+                    secondParent: null,
+                    branchTrack: simState.HEAD,
+                    x: lastX + 115,
+                    y: isMain ? 100 : 200
+                };
+                simState.commits.push(revCommit);
+                simState.branches[simState.HEAD] = newHash;
+                simState.reflog.unshift({ hash: newHash, action: `revert: Revert "${currentCommit.msg}"` });
+                appendTerminalLine(cmd, `[${simState.HEAD} <strong class="text-pink-400">${newHash}</strong>] Revert "${currentCommit.msg}"\n <span class="text-emerald-400">¡Seguro para el equipo! Se creó un nuevo commit que deshace el anterior sin borrar el historial.</span>`);
+            }
+            // --- git stash ---
+            else if (sub === 'stash') {
+                if (parts[2] === 'pop') {
+                    if (simState.stashes.length === 0) {
+                        appendTerminalLine(cmd, `No stash entries found.`, true);
+                    } else {
+                        const popped = simState.stashes.pop();
+                        simState.workingFiles.push(...popped);
+                        appendTerminalLine(cmd, `<span class="text-emerald-400">Dropped refs/stash@{0}. Tus archivos guardados (${popped.join(', ')}) volvieron a tu Working Directory.</span>`);
+                    }
+                } else if (parts[2] === 'list') {
+                    if (simState.stashes.length === 0) {
+                        appendTerminalLine(cmd, `(Cajón de stash vacío)`);
+                    } else {
+                        appendTerminalLine(cmd, simState.stashes.map((s, i) => `stash@{${i}}: WIP on ${simState.HEAD}: (${s.join(', ')})`).join('\n'));
+                    }
+                } else {
+                    const filesToStash = [...simState.workingFiles, ...simState.stagedFiles];
+                    if (filesToStash.length === 0) {
+                        simState.stashes.push(['trabajo_en_progreso.js']);
+                    } else {
+                        simState.stashes.push(filesToStash);
+                    }
+                    simState.workingFiles = [];
+                    simState.stagedFiles = [];
+                    appendTerminalLine(cmd, `<span class="text-amber-300">Saved working directory and index state WIP on ${simState.HEAD}. ¡Tu carpeta quedó limpia para cambiar de rama!</span>`);
+                }
+            }
+            // --- git log ---
+            else if (sub === 'log') {
+                const lines = simState.commits.slice().reverse().map(c => {
+                    const branchBadges = Object.entries(simState.branches)
+                        .filter(([_, h]) => h === c.hash)
+                        .map(([b, _]) => b === simState.HEAD ? `HEAD -> ${b}` : b)
+                        .join(', ');
+                    const badgeStr = branchBadges ? ` <span class="text-amber-400">(${branchBadges})</span>` : '';
+                    return `<span class="text-blue-400">${c.hash}</span>${badgeStr} ${c.msg}`;
+                }).join('\n');
+                appendTerminalLine(cmd, lines);
+            }
+            // --- git reflog ---
+            else if (sub === 'reflog') {
+                const lines = simState.reflog.map((r, i) => 
+                    `<span class="text-amber-400">${r.hash}</span> HEAD@{${i}}: ${r.action}`
+                ).join('\n');
+                appendTerminalLine(cmd, `<span class="text-cyan-400"># Historial de seguridad (Caja Negra de Git):</span>\n` + lines);
+            }
+            // --- git diff / show / blame / shortlog / tag / remote / fetch / pull / push / clean ---
+            else if (sub === 'diff') {
+                appendTerminalLine(cmd, `diff --git a/app.js b/app.js\n--- a/app.js\n+++ b/app.js\n@@ -12,3 +12,5 @@\n- const modoMiedo = true;\n+ const modoMiedo = false;\n+ console.log("Dominando Git en el trabajo");`);
+            }
+            else if (sub === 'show') {
+                const currentHash = simState.branches[simState.HEAD];
+                const c = simState.commits.find(x => x.hash === currentHash);
+                appendTerminalLine(cmd, `commit <span class="text-amber-400">${c.hash}</span> (HEAD -> ${simState.HEAD})\nAuthor: Desarrollador Pro <dev@empresa.com>\n\n    ${c.msg}\n\n+ Código verificado y funcionando.`);
+            }
+            else if (sub === 'blame') {
+                appendTerminalLine(cmd, `10a4f2c (Ana Líder   2025-02-10 09:15) import { initApp } from './core';\n24b8e1d (Carlos Dev  2025-02-11 14:30) export function autenticarUsuario() {\n24b8e1d (Carlos Dev  2025-02-11 14:30)   return verificarToken();\n10a4f2c (Ana Líder   2025-02-10 09:15) }`);
+            }
+            else if (sub === 'shortlog') {
+                appendTerminalLine(cmd, `    14  Desarrollador Pro\n     9  Ana Líder Técnico\n     6  Carlos Backend`);
+            }
+            else if (sub === 'tag') {
+                const tagName = parts[2] || 'v1.0.0';
+                appendTerminalLine(cmd, `<span class="text-emerald-400">Etiqueta '${tagName}' creada sobre el commit actual (${simState.branches[simState.HEAD]}).</span>`);
+            }
+            else if (sub === 'remote') {
+                appendTerminalLine(cmd, `origin\thttps://github.com/mi-empresa/proyecto-trabajo.git (fetch)\norigin\thttps://github.com/mi-empresa/proyecto-trabajo.git (push)`);
+            }
+            else if (sub === 'fetch') {
+                appendTerminalLine(cmd, `From https://github.com/mi-empresa/proyecto-trabajo\n * branch            main       -> FETCH_HEAD\n<span class="text-cyan-400">Información remota actualizada sin modificar tus archivos locales.</span>`);
+            }
+            else if (sub === 'pull') {
+                appendTerminalLine(cmd, `From https://github.com/mi-empresa/proyecto-trabajo\n * branch            ${simState.HEAD} -> FETCH_HEAD\n<span class="text-emerald-400">Already up to date. Tu rama local tiene todos los cambios del equipo.</span>`);
+            }
+            else if (sub === 'push') {
+                simState.remoteBranchHash = simState.branches[simState.HEAD];
+                appendTerminalLine(cmd, `Enumerating objects: 5, done.\nWriting objects: 100% (3/3), 412 bytes | 412.00 KiB/s, done.\nTo https://github.com/mi-empresa/proyecto-trabajo.git\n   10a4f2c..${simState.remoteBranchHash}  ${simState.HEAD} -> ${simState.HEAD}\n<span class="text-purple-400">¡Tus commits ya están publicados en GitHub (origin/${simState.HEAD})!</span>`);
+            }
+            else if (sub === 'clean') {
+                appendTerminalLine(cmd, `Would remove temporal_debug.log\nWould remove temp_cache/\n<span class="text-emerald-400">(Simulacro seguro con -n: ningún archivo fue borrado aún)</span>`);
+            }
+            else {
+                appendTerminalLine(cmd, `Comando ejecutado en modo demostración: ${cmd}`);
+            }
+
+            updateSimUI();
+        }
+
+        function updateSimUI() {
+            // Actualizar prompt y barra de estado
+            document.getElementById('terminal-prompt').innerHTML = `dev@empresa <span class="text-purple-400">(${simState.HEAD})</span> $`;
+            const isClean = simState.workingFiles.length === 0 && simState.stagedFiles.length === 0;
+            document.getElementById('sim-status-bar').innerHTML = `Rama actual: <strong class="text-white">${simState.HEAD}</strong> | ${isClean ? '<span class="text-emerald-400">Working tree clean</span>' : '<span class="text-amber-400">Cambios pendientes</span>'}`;
+
+            // Contadores inferiores
+            document.getElementById('sim-count-working').textContent = simState.workingFiles.length;
+            document.getElementById('sim-list-working').textContent = simState.workingFiles.length ? simState.workingFiles.join(', ') : 'Sin cambios pendientes';
+
+            document.getElementById('sim-count-staged').textContent = simState.stagedFiles.length;
+            document.getElementById('sim-list-staged').textContent = simState.stagedFiles.length ? simState.stagedFiles.join(', ') : 'Vacío';
+
+            document.getElementById('sim-count-stash').textContent = simState.stashes.length;
+            document.getElementById('sim-list-stash').textContent = simState.stashes.length ? `${simState.stashes.length} paquete(s) en cajón` : '0 guardados';
+
+            renderGitGraphSVG();
+        }
+
+        function renderGitGraphSVG() {
+            const svg = document.getElementById('git-graph-svg');
+            const commits = simState.commits;
+            const maxX = Math.max(750, ...commits.map(c => c.x + 140));
+            svg.setAttribute('viewBox', `0 0 ${maxX} 280`);
+
+            let html = `
+                <defs>
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                </defs>
+                <!-- Carriles guía de fondo -->
+                <line x1="30" y1="100" x2="${maxX - 30}" y2="100" stroke="#1e2631" stroke-width="2" stroke-dasharray="6,6" />
+                <text x="35" y="82" fill="#485260" font-size="10" font-family="Fira Code">Carril Principal (main)</text>
+                <line x1="30" y1="200" x2="${maxX - 30}" y2="200" stroke="#1e2631" stroke-width="2" stroke-dasharray="6,6" />
+                <text x="35" y="235" fill="#485260" font-size="10" font-family="Fira Code">Carril Ramas (feature / fix)</text>
+            `;
+
+            // 1. Dibujar líneas conectoras entre padres e hijos
+            commits.forEach(c => {
+                if (c.parent) {
+                    const p = commits.find(x => x.hash === c.parent);
+                    if (p) {
+                        const color = c.y === 100 && p.y === 100 ? '#3b82f6' : '#a855f7';
+                        html += `<path d="M ${p.x} ${p.y} C ${(p.x + c.x) / 2} ${p.y}, ${(p.x + c.x) / 2} ${c.y}, ${c.x} ${c.y}" fill="none" stroke="${color}" stroke-width="3.5" />`;
+                    }
+                }
+                if (c.secondParent) {
+                    const p2 = commits.find(x => x.hash === c.secondParent);
+                    if (p2) {
+                        html += `<path d="M ${p2.x} ${p2.y} C ${(p2.x + c.x) / 2} ${p2.y}, ${(p2.x + c.x) / 2} ${c.y}, ${c.x} ${c.y}" fill="none" stroke="#14b8a6" stroke-width="3" stroke-dasharray="5,3" />`;
+                    }
+                }
+            });
+
+            // 2. Dibujar nodos de cada commit y sus etiquetas de rama
+            commits.forEach(c => {
+                const isMainNode = c.y === 100;
+                const fillColor = c.secondParent ? '#14b8a6' : (isMainNode ? '#3b82f6' : '#a855f7');
+                
+                // Buscar qué ramas apuntan a este commit
+                const pointingBranches = Object.entries(simState.branches)
+                    .filter(([_, hash]) => hash === c.hash)
+                    .map(([bName, _]) => bName);
+
+                const isHeadHere = pointingBranches.includes(simState.HEAD);
+
+                html += `
+                    <g class="commit-node cursor-pointer">
+                        ${isHeadHere ? `<circle cx="${c.x}" cy="${c.y}" r="20" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,3" />` : ''}
+                        <circle cx="${c.x}" cy="${c.y}" r="13" fill="#0d1117" stroke="${fillColor}" stroke-width="4" />
+                        <circle cx="${c.x}" cy="${c.y}" r="5" fill="${fillColor}" />
+                        
+                        <!-- Hash del Commit -->
+                        <text x="${c.x}" y="${c.y + 30}" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold" font-family="Fira Code">${c.hash}</text>
+                        <!-- Mensaje corto -->
+                        <text x="${c.x}" y="${c.y + 44}" text-anchor="middle" fill="#8b949e" font-size="9.5" font-family="Inter">${c.msg.length > 18 ? c.msg.substring(0, 18) + '…' : c.msg}</text>
+                    </g>
+                `;
+
+                // Dibujar etiquetas de ramas encima del nodo
+                pointingBranches.forEach((bName, idx) => {
+                    const isCurrent = bName === simState.HEAD;
+                    const badgeY = c.y - 38 - (idx * 24);
+                    const badgeColor = bName === 'main' ? '#2563eb' : '#7e22ce';
+                    const labelText = isCurrent ? `HEAD → ${bName}` : bName;
+                    const boxWidth = Math.max(68, labelText.length * 6.8 + 16);
+
+                    html += `
+                        <g>
+                            <rect x="${c.x - boxWidth / 2}" y="${badgeY - 14}" width="${boxWidth}" height="20" rx="6" fill="${badgeColor}" stroke="${isCurrent ? '#fbbf24' : '#ffffff33'}" stroke-width="${isCurrent ? '2' : '1'}" />
+                            <text x="${c.x}" y="${badgeY}" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="bold" font-family="Fira Code">${labelText}</text>
+                        </g>
+                    `;
+                });
+            });
+
+            svg.innerHTML = html;
+        }
+
+        /* =====================================================================
+           5. CATÁLOGO INTERACTIVO DE COMANDOS (MÓDULO 3)
+           ===================================================================== */
+        let currentCatFilter = 'all';
+
+        function renderCatalog() {
+            const searchVal = (document.getElementById('cmd-search').value || '').toLowerCase().trim();
+            const grid = document.getElementById('commands-grid');
+
+            const filtered = GIT_COMMANDS.filter(item => {
+                const matchesCat = currentCatFilter === 'all' || item.category === currentCatFilter;
+                const matchesSearch = !searchVal ||
+                    item.cmd.toLowerCase().includes(searchVal) ||
+                    item.syntax.toLowerCase().includes(searchVal) ||
+                    item.shortDesc.toLowerCase().includes(searchVal) ||
+                    item.workUse.toLowerCase().includes(searchVal) ||
+                    item.catName.toLowerCase().includes(searchVal);
+                return matchesCat && matchesSearch;
+            });
+
+            document.getElementById('count-all').textContent = GIT_COMMANDS.length;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-gh-card border border-gh-border rounded-2xl p-8 text-center">
+                        <i class="fa-solid fa-magnifying-glass text-3xl text-gh-muted mb-2"></i>
+                        <h4 class="text-white font-bold">No encontramos comandos para "${searchVal}"</h4>
+                        <p class="text-xs text-gh-muted mt-1">Intenta buscar palabras como "rama", "borrar", "historial", "subir" o "deshacer".</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(item => {
+                let badgeClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+                if (item.safety === 'caution') badgeClass = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+                if (item.safety === 'danger') badgeClass = 'bg-red-500/10 text-red-400 border-red-500/30';
+
+                return `
+                    <div class="bg-gh-card border border-gh-border hover:border-blue-500/60 rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 shadow-lg">
+                        <div>
+                            <!-- Cabecera de la tarjeta -->
+                            <div class="flex items-center justify-between gap-2 mb-3">
+                                <span class="text-[11px] font-mono text-gh-muted uppercase tracking-wider">${item.catName}</span>
+                                <span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full border ${badgeClass}">${item.safetyLabel}</span>
+                            </div>
+
+                            <!-- Comando y Sintaxis -->
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-bold font-mono text-white">${item.cmd}</h3>
+                                <button onclick="copyText('${item.syntax.replace(/'/g, "\\'")}')" title="Copiar sintaxis" class="text-gh-muted hover:text-white text-xs p-1.5 rounded-lg hover:bg-gh-border/50 transition">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                            </div>
+                            <div class="mt-1.5 bg-gh-bg border border-gh-border rounded-lg px-3 py-1.5 font-mono text-xs text-blue-400 truncate">
+                                $ ${item.syntax}
+                            </div>
+
+                            <!-- Explicación clara -->
+                            <p class="text-xs text-gray-300 mt-3 leading-relaxed">${item.shortDesc}</p>
+
+                            <!-- Mini lista de Flags más comunes -->
+                            <div class="mt-3 pt-3 border-t border-gh-border/60 space-y-1.5">
+                                <div class="text-[10px] font-semibold uppercase text-gh-muted">Opciones clave en el trabajo:</div>
+                                ${item.flags.slice(0, 2).map(fl => `
+                                    <div class="text-[11px] bg-gh-bg/60 rounded px-2 py-1">
+                                        <code class="text-amber-300 font-mono">${fl.flag}</code>
+                                        <span class="text-gh-muted block text-[10px]">${fl.desc}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Botones de Acción de la Tarjeta -->
+                        <div class="mt-4 pt-3 border-t border-gh-border flex items-center justify-between gap-2">
+                            <button onclick="openCommandModal('${item.id}')" class="flex-1 py-2 px-3 rounded-xl bg-gh-bg hover:bg-gh-border/60 border border-gh-border text-xs font-medium text-gray-200 transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-circle-info text-blue-400"></i> Ver Guía y Flags
+                            </button>
+                            <button onclick="tryCommandInSimulator('${item.id}')" class="py-2 px-3.5 rounded-xl bg-blue-600/20 hover:bg-blue-600 border border-blue-500/40 text-blue-300 hover:text-white text-xs font-semibold transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-terminal"></i> Simular
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function setCategoryFilter(cat) {
+            currentCatFilter = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                if (btn.getAttribute('data-cat') === cat) {
+                    btn.className = 'cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition';
+                } else {
+                    btn.className = 'cat-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gh-bg text-gh-muted hover:text-white border border-gh-border transition';
+                }
+            });
+            renderCatalog();
+        }
+
+        function filterCatalog() {
+            renderCatalog();
+        }
+
+        function openCommandModal(cmdId) {
+            const item = GIT_COMMANDS.find(c => c.id === cmdId);
+            if (!item) return;
+
+            let badgeClass = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+            if (item.safety === 'caution') badgeClass = 'bg-amber-500/10 text-amber-400 border border-amber-500/30';
+            if (item.safety === 'danger') badgeClass = 'bg-red-500/10 text-red-400 border border-red-500/30';
+
+            const badgeEl = document.getElementById('modal-badge');
+            badgeEl.className = `text-xs font-semibold px-2.5 py-1 rounded-full ${badgeClass}`;
+            badgeEl.textContent = `${item.catName} • ${item.safetyLabel}`;
+
+            document.getElementById('modal-title').textContent = item.syntax;
+            document.getElementById('modal-desc').textContent = `${item.shortDesc} ${item.workUse}`;
+
+            document.getElementById('modal-flags').innerHTML = item.flags.map(f => `
+                <div class="p-2 rounded-lg bg-gh-card border border-gh-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <code class="text-emerald-400 font-bold shrink-0">${f.flag}</code>
+                    <span class="text-gray-300 font-sans text-xs">${f.desc}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('modal-tip').textContent = item.tip;
+
+            const tryBtn = document.getElementById('modal-try-btn');
+            tryBtn.onclick = () => {
+                closeModal();
+                tryCommandInSimulator(item.id);
+            };
+
+            const modal = document.getElementById('command-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('command-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function tryCommandInSimulator(cmdId) {
+            const item = GIT_COMMANDS.find(c => c.id === cmdId);
+            if (!item) return;
+            switchSection('simulator');
+            setTimeout(() => {
+                runSimCommand(item.simCmd);
+                showToast(`Ejecutado en el simulador: ${item.simCmd}`, 'emerald');
+            }, 150);
+        }
+
+        /* =====================================================================
+           6. RENDERIZADO DEL SALVAVIDAS / BOTÓN DE PÁNICO (MÓDULO 4)
+           ===================================================================== */
+        function renderPanicScenarios() {
+            const container = document.getElementById('panic-scenarios-container');
+            container.innerHTML = PANIC_SCENARIOS.map(sc => `
+                <div class="bg-gh-card border border-gh-border hover:border-red-500/40 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+                    <div class="space-y-3">
+                        <div class="flex items-start gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0 mt-0.5">
+                                <i class="fa-solid ${sc.icon}"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white text-base leading-snug">${sc.title}</h3>
+                                <p class="text-xs text-gh-muted mt-1">${sc.situation}</p>
+                            </div>
+                        </div>
+
+                        <!-- Pasos de rescate -->
+                        <div class="space-y-2.5 pt-2">
+                            ${sc.steps.map(st => `
+                                <div class="bg-gh-bg border border-gh-border rounded-xl p-3">
+                                    <div class="text-xs text-gray-300 mb-1.5 font-medium">${st.label}</div>
+                                    <div class="flex items-center justify-between gap-2 bg-[#090d13] px-3 py-2 rounded-lg border border-gh-border/70">
+                                        <code class="font-mono text-xs text-emerald-400 overflow-x-auto">${st.cmd}</code>
+                                        <button onclick="copyText('${st.cmd.replace(/'/g, "\\'")}')" class="text-gh-muted hover:text-white text-xs px-2 py-1 rounded bg-gh-card border border-gh-border shrink-0 transition">
+                                            <i class="fa-regular fa-copy mr-1"></i> Copiar
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="bg-emerald-950/30 border border-emerald-500/30 rounded-xl p-3 flex items-center gap-2.5 text-xs text-emerald-300">
+                        <i class="fa-solid fa-shield-heart text-emerald-400 text-base shrink-0"></i>
+                        <span>${sc.reassurance}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /* =====================================================================
+           7. NAVEGACIÓN Y UTILIDADES GENERALES
+           ===================================================================== */
+        function switchSection(sectionName) {
+            const sections = ['visualizer', 'simulator', 'catalog', 'panic'];
+            sections.forEach(s => {
+                const secEl = document.getElementById(`section-${s}`);
+                const navEl = document.getElementById(`nav-${s}`);
+                if (!secEl || !navEl) return;
+
+                if (s === 'catalog' && sectionName === 'visualizer') {
+                    // Mostramos el catálogo también debajo del visualizador al inicio para que todo sea accesible de un vistazo
+                    secEl.classList.remove('hidden');
+                } else if (s === sectionName) {
+                    secEl.classList.remove('hidden');
+                } else {
+                    secEl.classList.add('hidden');
+                }
+
+                // Estilo de botón activo en la barra superior
+                if (s === sectionName) {
+                    navEl.className = 'nav-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center gap-2 bg-blue-600 text-white shadow';
+                } else if (s === 'panic') {
+                    navEl.className = 'nav-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-red-400 hover:bg-red-500/10 transition flex items-center gap-2';
+                } else {
+                    navEl.className = 'nav-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gh-muted hover:text-white transition flex items-center gap-2';
+                }
+            });
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function copyText(text) {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast(`Comando copiado: ${text}`, 'emerald');
+        }
+
+        function showToast(message, color = 'blue') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            let borderCol = 'border-blue-500/50 bg-blue-950/90 text-blue-200';
+            if (color === 'emerald') borderCol = 'border-emerald-500/50 bg-emerald-950/90 text-emerald-200';
+            if (color === 'amber') borderCol = 'border-amber-500/50 bg-amber-950/90 text-amber-200';
+            if (color === 'purple') borderCol = 'border-purple-500/50 bg-purple-950/90 text-purple-200';
+
+            toast.className = `px-4 py-2.5 rounded-xl border ${borderCol} backdrop-blur-md shadow-xl text-xs font-mono flex items-center gap-2 transition-all duration-300`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 2600);
+        }
+
+        // Inicializar toda la aplicación al cargar la ventana
+        window.onload = function () {
+            renderFlowZones();
+            initSandbox();
+            renderCatalog();
+            renderPanicScenarios();
+        };
+    </script>
+</body>
+</html>
